@@ -3,6 +3,8 @@ import { LocalStorageHydrationRecordRepository } from '../repositories/LocalStor
 import { LocalStorageHydrationGoalRepository } from '../repositories/LocalStorageHydrationGoalRepository';
 
 import { AddHydrationRecordUseCase } from '@/application/use-cases/AddHydrationRecordUseCase';
+import { UpdateHydrationRecordUseCase } from '@/application/use-cases/UpdateHydrationRecordUseCase';
+import { DeleteHydrationRecordUseCase } from '@/application/use-cases/DeleteHydrationRecordUseCase';
 import { GetHydrationHistoryUseCase } from '@/application/use-cases/GetHydrationHistoryUseCase';
 import { GetDailyHydrationSummaryUseCase } from '@/application/use-cases/GetDailyHydrationSummaryUseCase';
 import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
@@ -62,6 +64,14 @@ class DIContainer {
     this._hydrationRecordRepository
   );
 
+  private _updateHydrationRecordUseCase = new UpdateHydrationRecordUseCase(
+    this._hydrationRecordRepository
+  );
+
+  private _deleteHydrationRecordUseCase = new DeleteHydrationRecordUseCase(
+    this._hydrationRecordRepository
+  );
+
   // Getters
   get addHydrationRecordUseCase() {
     return this._addHydrationRecordUseCase;
@@ -105,6 +115,14 @@ class DIContainer {
 
   get getNextHydrationTimeUseCase() {
     return this._getNextHydrationTimeUseCase;
+  }
+
+  get updateHydrationRecordUseCase() {
+    return this._updateHydrationRecordUseCase;
+  }
+
+  get deleteHydrationRecordUseCase() {
+    return this._deleteHydrationRecordUseCase;
   }
 }
 

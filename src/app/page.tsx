@@ -19,6 +19,9 @@ import WeeklyChart from '@/presentation/components/WeeklyChart';
 import YearlyChart from '@/presentation/components/YearlyChart';
 import DailyHourlyChart from '@/presentation/components/DailyHourlyChart';
 import NextHydrationTimer from '@/presentation/components/NextHydrationTimer';
+import UserProfileSettings from '@/presentation/components/UserProfileSettings';
+import DataManagementSettings from '@/presentation/components/DataManagementSettings';
+import AppearanceSettings from '@/presentation/components/AppearanceSettings';
 
 const DEFAULT_USER_ID = 'default-user';
 
@@ -148,6 +151,36 @@ export default function Home() {
     await handleAddRecord(200);
   };
 
+  const handleEditRecord = async (recordId: string, amount: number, note?: string) => {
+    setIsLoading(true);
+    try {
+      await container.updateHydrationRecordUseCase.execute({
+        recordId,
+        amount,
+        note,
+      });
+      await loadData();
+    } catch (error) {
+      console.error('記録の更新に失敗しました:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteRecord = async (recordId: string) => {
+    setIsLoading(true);
+    try {
+      await container.deleteHydrationRecordUseCase.execute({
+        recordId,
+      });
+      await loadData();
+    } catch (error) {
+      console.error('記録の削除に失敗しました:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGoalUpdate = async (newGoal: number) => {
     setIsLoading(true);
     try {
@@ -186,6 +219,131 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('hydration-reminder-settings', JSON.stringify(settings));
     }
+  };
+
+  const handleProfileUpdate = (profile: any) => {
+    console.log('Profile updated:', profile);
+    // Optionally update goal based on profile recommendations
+    // if (profile.recommendedIntake) {
+    //   handleGoalUpdate(profile.recommendedIntake);
+    // }
+  };
+
+  const handleDataExport = (format: 'json' | 'csv') => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const allData = {
+        records: JSON.parse(localStorage.getItem('hydration-records') || '[]'),
+        goals: JSON.parse(localStorage.getItem('hydration-goals') || '[]'),
+        settings: {
+          reminderSettings,
+          currentGoal,
+          activeTab,
+          statsTab,
+        },
+        profile: JSON.parse(localStorage.getItem('hydration-user-profile') || '{}'),
+        appearance: JSON.parse(localStorage.getItem('hydration-appearance-settings') || '{}'),
+        exportDate: new Date().toISOString(),
+        version: '1.0'
+      };
+
+      if (format === 'json') {
+        const dataStr = JSON.stringify(allData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `hydration-backup-${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+      } else if (format === 'csv') {
+        const records = allData.records;
+        let csvContent = 'Date,Time,Amount(ml),Note\n';
+        records.forEach((record: any) => {
+          const date = new Date(record.timestamp);
+          csvContent += `${date.toDateString()},${date.toTimeString().split(' ')[0]},${record.amount},"${record.note || ''}"\n`;
+        });
+        
+        const dataBlob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `hydration-data-${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+      
+      alert(`データを${format.toUpperCase()}形式でエクスポートしました。`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('エクスポートに失敗しました。');
+    }
+  };
+
+  const handleDataImport = (data: any) => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      if (data.records) {
+        localStorage.setItem('hydration-records', JSON.stringify(data.records));
+      }
+      if (data.goals) {
+        localStorage.setItem('hydration-goals', JSON.stringify(data.goals));
+      }
+      if (data.profile) {
+        localStorage.setItem('hydration-user-profile', JSON.stringify(data.profile));
+      }
+      if (data.appearance) {
+        localStorage.setItem('hydration-appearance-settings', JSON.stringify(data.appearance));
+      }
+      if (data.settings) {
+        if (data.settings.reminderSettings) {
+          localStorage.setItem('hydration-reminder-settings', JSON.stringify(data.settings.reminderSettings));
+          setReminderSettings(data.settings.reminderSettings);
+        }
+        if (data.settings.currentGoal) {
+          localStorage.setItem('hydration-current-goal', data.settings.currentGoal.toString());
+          setCurrentGoal(data.settings.currentGoal);
+        }
+      }
+      
+      // Reload data
+      loadData();
+      alert('データのインポートが完了しました。ページを再読み込みして最新の状態を反映してください。');
+    } catch (error) {
+      console.error('Import failed:', error);
+      alert('インポートに失敗しました。正しいファイル形式か確認してください。');
+    }
+  };
+
+  const handleDataClear = () => {
+    if (typeof window === 'undefined') return;
+    
+    const hydrationKeys = Object.keys(localStorage).filter(key => key.startsWith('hydration-'));
+    hydrationKeys.forEach(key => localStorage.removeItem(key));
+    
+    // Reset state
+    setRecords([]);
+    setDailySummary(null);
+    setCurrentGoal(2000);
+    setWeeklyStats(null);
+    setYearlyStats(null);
+    setTodayHourlyStats(null);
+    setNextHydrationInfo(null);
+    setReminderSettings({
+      enabled: false,
+      intervalMinutes: 60,
+      startTime: '08:00',
+      endTime: '22:00',
+    });
+    
+    alert('すべてのデータが削除されました。');
+  };
+
+  const handleAppearanceChange = (settings: any) => {
+    console.log('Appearance settings changed:', settings);
+    // Apply theme changes if needed
   };
 
   // Load all settings from localStorage on mount
@@ -257,7 +415,11 @@ export default function Home() {
             <HydrationForm onSubmit={handleAddRecord} isLoading={isLoading} />
           </div>
           
-          <HydrationHistory records={records} />
+          <HydrationHistory 
+            records={records} 
+            onEdit={handleEditRecord}
+            onDelete={handleDeleteRecord}
+          />
         </div>
       </div>
     </div>
@@ -312,7 +474,7 @@ export default function Home() {
 
   const renderSettingsTab = () => (
     <div className="space-y-6">
-      {/* PC用：横2列レイアウト */}
+      {/* 基本設定 - 横2列レイアウト */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GoalSettings
           currentGoal={currentGoal}
@@ -322,6 +484,23 @@ export default function Home() {
         <ReminderSettingsComponent 
           settings={reminderSettings}
           onSettingsChange={handleReminderSettingsChange}
+        />
+      </div>
+
+      {/* プロフィール設定 */}
+      <UserProfileSettings
+        onProfileUpdate={handleProfileUpdate}
+      />
+
+      {/* 外観設定とデータ管理 - 横2列レイアウト */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AppearanceSettings
+          onSettingsChange={handleAppearanceChange}
+        />
+        <DataManagementSettings
+          onDataExport={handleDataExport}
+          onDataImport={handleDataImport}
+          onDataClear={handleDataClear}
         />
       </div>
     </div>

@@ -1,3 +1,5 @@
+import { NotificationService } from '../services/NotificationService';
+
 export interface ReminderSettings {
   enabled: boolean;
   intervalMinutes: number;
@@ -8,6 +10,7 @@ export interface ReminderSettings {
 export class HydrationReminderUseCase {
   private timerId: NodeJS.Timeout | null = null;
   private lastReminderTime: Date | null = null;
+  private notificationService = NotificationService.getInstance();
 
   startReminder(settings: ReminderSettings, onReminder: () => void): void {
     if (!settings.enabled) {
@@ -19,9 +22,13 @@ export class HydrationReminderUseCase {
 
     const intervalMs = settings.intervalMinutes * 60 * 1000;
     
-    this.timerId = setInterval(() => {
+    this.timerId = setInterval(async () => {
       if (this.shouldShowReminder(settings)) {
         onReminder();
+        // Windows通知も表示
+        await this.notificationService.showHydrationReminder();
+        this.notificationService.playNotificationSound();
+        this.notificationService.vibrate();
         this.lastReminderTime = new Date();
       }
     }, intervalMs);

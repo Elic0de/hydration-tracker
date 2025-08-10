@@ -18,12 +18,7 @@ export default function ReminderNotification({
   useEffect(() => {
     if (show) {
       setIsVisible(true);
-      // Auto-close after 10 seconds
-      const timer = setTimeout(() => {
-        handleClose();
-      }, 10000);
-      
-      return () => clearTimeout(timer);
+      // 自動的に閉じないように変更 - ユーザーが手動で閉じる必要がある
     } else {
       setIsVisible(false);
     }
@@ -88,29 +83,13 @@ export default function ReminderNotification({
             </button>
           </div>
           
-          {/* 自動閉じるインジケーター */}
-          <div className="mt-6">
-            <div className="flex justify-center">
-              <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-1 rounded-full"
-                  style={{
-                    animation: 'progress 10s linear forwards'
-                  }}
-                />
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">10秒後に自動的に閉じます</p>
+          {/* 手動閉じる説明 */}
+          <div className="mt-4">
+            <p className="text-xs text-gray-500">手動で閉じるか記録してください</p>
           </div>
         </div>
       </div>
       
-      <style jsx>{`
-        @keyframes progress {
-          from { width: 100%; }
-          to { width: 0%; }
-        }
-      `}</style>
     </>
   );
 }
