@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,7 +13,7 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Line, Bar } from 'react-chartjs-2';
 import { WeeklyStatistics } from '@/application/use-cases/GetWeeklyStatisticsUseCase';
 
 ChartJS.register(
@@ -32,25 +33,40 @@ interface WeeklyChartProps {
 }
 
 export default function WeeklyChart({ data }: WeeklyChartProps) {
+  const [chartType, setChartType] = useState<'line' | 'bar'>('line');
+  const [showGoal, setShowGoal] = useState(true);
   const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
   
+  const getGradientColors = () => {
+    const colors = data.dailyData.map(day => {
+      const achievement = day.achievementRate;
+      if (achievement >= 1) return 'rgba(34, 197, 94, 0.8)'; // green
+      if (achievement >= 0.8) return 'rgba(59, 130, 246, 0.8)'; // blue
+      if (achievement >= 0.6) return 'rgba(251, 191, 36, 0.8)'; // yellow
+      return 'rgba(239, 68, 68, 0.8)'; // red
+    });
+    return colors;
+  };
+
   const chartData = {
     labels: data.dailyData.map((_, index) => weekDays[index]),
     datasets: [
       {
         label: '摂取量',
         data: data.dailyData.map(day => day.totalAmount),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
+        borderColor: chartType === 'line' ? 'rgb(59, 130, 246)' : undefined,
+        backgroundColor: chartType === 'bar' ? getGradientColors() : 'rgba(59, 130, 246, 0.1)',
+        fill: chartType === 'line',
         tension: 0.4,
-        pointRadius: 6,
+        pointRadius: chartType === 'line' ? 6 : 0,
         pointHoverRadius: 8,
-        pointBackgroundColor: 'rgb(59, 130, 246)',
+        pointBackgroundColor: getGradientColors(),
         pointBorderColor: 'white',
         pointBorderWidth: 2,
+        borderWidth: chartType === 'bar' ? 0 : 2,
+        borderRadius: chartType === 'bar' ? 8 : 0,
       },
-      {
+      ...(showGoal ? [{
         label: '目標',
         data: data.dailyData.map(day => day.goalAmount),
         borderColor: 'rgb(239, 68, 68)',
@@ -60,13 +76,18 @@ export default function WeeklyChart({ data }: WeeklyChartProps) {
         tension: 0,
         pointRadius: 0,
         pointHoverRadius: 6,
-      },
+        type: 'line' as const,
+      }] : []),
     ],
   };
 
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 1000,
+      easing: 'easeOutCubic' as const,
+    },
     plugins: {
       legend: {
         position: 'top' as const,
@@ -95,7 +116,14 @@ export default function WeeklyChart({ data }: WeeklyChartProps) {
               const index = tooltipItems[0].dataIndex;
               const dayData = data.dailyData[index];
               const achievement = Math.round(dayData.achievementRate * 100);
-              return [`達成率: ${achievement}%`, `記録回数: ${dayData.recordCount}回`];
+              const status = achievement >= 100 ? '🎉 目標達成!' : 
+                           achievement >= 80 ? '👍 ほぼ達成' : 
+                           achievement >= 60 ? '💪 もう少し' : '🔴 要改善';
+              return [
+                `達成率: ${achievement}%`,
+                `記録回数: ${dayData.recordCount}回`,
+                status
+              ];
             }
             return [];
           },
@@ -135,18 +163,59 @@ export default function WeeklyChart({ data }: WeeklyChartProps) {
 
   return (
     <div className="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-lg p-6 border border-blue-100">
-      {/* ヘッダー */}
+      {/* ヘッダーとコントロール */}
       <div className="text-center mb-6">
         <div className="text-3xl mb-2">📊</div>
         <h3 className="text-xl font-bold text-gray-800">週間統計</h3>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 mb-4">
           {formatDate(data.weekStartDate)} - {formatDate(new Date(data.weekStartDate.getTime() + 6 * 24 * 60 * 60 * 1000))}
         </p>
+        
+        {/* チャートコントロール */}
+        <div className="flex justify-center gap-2 mb-4">
+          <div className="bg-white rounded-xl p-1 shadow-sm border border-gray-200">
+            <button
+              onClick={() => setChartType('line')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                chartType === 'line'
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              📈 ライン
+            </button>
+            <button
+              onClick={() => setChartType('bar')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                chartType === 'bar'
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              📊 バー
+            </button>
+          </div>
+          
+          <button
+            onClick={() => setShowGoal(!showGoal)}
+            className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${
+              showGoal
+                ? 'bg-red-500 text-white border-red-500 shadow-md'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            🎯 目標線
+          </button>
+        </div>
       </div>
 
       {/* グラフ */}
       <div className="h-64 md:h-80 lg:h-96 mb-6">
-        <Line data={chartData} options={options} />
+        {chartType === 'line' ? (
+          <Line data={chartData} options={options} />
+        ) : (
+          <Bar data={chartData} options={options} />
+        )}
       </div>
 
       {/* 統計サマリー */}
