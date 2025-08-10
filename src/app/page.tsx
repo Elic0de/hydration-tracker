@@ -430,6 +430,9 @@ export default function Home() {
             <NextHydrationTimer
               nextHydrationInfo={nextHydrationInfo}
               onDrinkNow={handleQuickDrink}
+              onRefreshTimer={() => loadData()}
+              records={records}
+              reminderSettings={reminderSettings}
             />
           )}
 
