@@ -22,6 +22,11 @@ import NextHydrationTimer from '@/presentation/components/NextHydrationTimer';
 import UserProfileSettings from '@/presentation/components/UserProfileSettings';
 import DataManagementSettings from '@/presentation/components/DataManagementSettings';
 import AppearanceSettings from '@/presentation/components/AppearanceSettings';
+import QuickActions from '@/presentation/components/QuickActions';
+import HabitTracker from '@/presentation/components/HabitTracker';
+import WeatherIntegration from '@/presentation/components/WeatherIntegration';
+import SmartNotifications from '@/presentation/components/SmartNotifications';
+import HealthcareIntegration from '@/presentation/components/HealthcareIntegration';
 
 const DEFAULT_USER_ID = 'default-user';
 
@@ -149,6 +154,19 @@ export default function Home() {
 
   const handleQuickDrink = async () => {
     await handleAddRecord(200);
+  };
+
+  const handleQuickRecord = async (amount: number, note?: string) => {
+    await handleAddRecord(amount, note);
+  };
+
+  const handleWeatherGoalAdjustment = async (newGoal: number, reason: string) => {
+    setCurrentGoal(newGoal);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hydration-current-goal', newGoal.toString());
+    }
+    console.log(`Goal adjusted to ${newGoal}ml: ${reason}`);
+    await loadData();
   };
 
   const handleEditRecord = async (recordId: string, amount: number, note?: string) => {
@@ -346,6 +364,16 @@ export default function Home() {
     // Apply theme changes if needed
   };
 
+  const handleSmartNotificationChange = (settings: any) => {
+    console.log('Smart notification settings changed:', settings);
+    // Apply smart notification settings
+  };
+
+  const handleHealthDataSync = (data: any) => {
+    console.log('Health data synced:', data);
+    // Process health data and potentially adjust goals
+  };
+
   // Load all settings from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -404,9 +432,22 @@ export default function Home() {
               onDrinkNow={handleQuickDrink}
             />
           )}
+
+          {/* 習慣トラッカー */}
+          <HabitTracker 
+            records={records}
+            dailySummary={dailySummary}
+            currentGoal={currentGoal}
+          />
         </div>
         
         <div className="space-y-6">
+          {/* クイックアクション */}
+          <QuickActions 
+            onQuickRecord={handleQuickRecord}
+            isLoading={isLoading}
+          />
+
           <div className="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-xl p-6 border border-blue-100">
             <div className="text-center mb-6">
               <h2 className="text-xl font-bold text-gray-800 mb-2">水分補給を記録</h2>
@@ -487,9 +528,26 @@ export default function Home() {
         />
       </div>
 
-      {/* プロフィール設定 */}
-      <UserProfileSettings
-        onProfileUpdate={handleProfileUpdate}
+      {/* 高度な通知設定 */}
+      <SmartNotifications
+        records={records}
+        onSettingsChange={handleSmartNotificationChange}
+      />
+
+      {/* プロフィール設定と天気連携 - 横2列レイアウト */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <UserProfileSettings
+          onProfileUpdate={handleProfileUpdate}
+        />
+        <WeatherIntegration
+          currentGoal={currentGoal}
+          onGoalAdjustment={handleWeatherGoalAdjustment}
+        />
+      </div>
+
+      {/* ヘルスケア連携 */}
+      <HealthcareIntegration
+        onDataSync={handleHealthDataSync}
       />
 
       {/* 外観設定とデータ管理 - 横2列レイアウト */}
