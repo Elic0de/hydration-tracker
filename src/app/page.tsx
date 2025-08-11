@@ -1,53 +1,63 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { container } from '@/infrastructure/di/container';
-import { HydrationRecord } from '@/domain/entities/HydrationRecord';
-import { DailyHydrationSummary } from '@/domain/value-objects/HydrationSummary';
-import { ReminderSettings } from '@/application/use-cases/HydrationReminderUseCase';
-import { WeeklyStatistics } from '@/application/use-cases/GetWeeklyStatisticsUseCase';
-import { YearlyStatistics } from '@/application/use-cases/GetYearlyStatisticsUseCase';
-import { DailyHourlyStatistics } from '@/application/use-cases/GetDailyHourlyStatisticsUseCase';
-import { NextHydrationInfo } from '@/application/use-cases/GetNextHydrationTimeUseCase';
-import HydrationForm from '@/presentation/components/HydrationForm';
-import HydrationHistory from '@/presentation/components/HydrationHistory';
-import DailySummary from '@/presentation/components/DailySummary';
-import ReminderSettingsComponent from '@/presentation/components/ReminderSettings';
-import ReminderNotification from '@/presentation/components/ReminderNotification';
-import GoalSettings from '@/presentation/components/GoalSettings';
-import WeeklyChart from '@/presentation/components/WeeklyChart';
-import YearlyChart from '@/presentation/components/YearlyChart';
-import DailyHourlyChart from '@/presentation/components/DailyHourlyChart';
-import NextHydrationTimer from '@/presentation/components/NextHydrationTimer';
-import UserProfileSettings from '@/presentation/components/UserProfileSettings';
-import DataManagementSettings from '@/presentation/components/DataManagementSettings';
-import AppearanceSettings from '@/presentation/components/AppearanceSettings';
-import QuickActions from '@/presentation/components/QuickActions';
-import HabitTracker from '@/presentation/components/HabitTracker';
-import WeatherIntegration from '@/presentation/components/WeatherIntegration';
-import SmartNotifications from '@/presentation/components/SmartNotifications';
-import HealthcareIntegration from '@/presentation/components/HealthcareIntegration';
+import { useState, useEffect } from "react";
+import { container } from "@/infrastructure/di/container";
+import { HydrationRecord } from "@/domain/entities/HydrationRecord";
+import { DailyHydrationSummary } from "@/domain/value-objects/HydrationSummary";
+import { ReminderSettings } from "@/application/use-cases/HydrationReminderUseCase";
+import { WeeklyStatistics } from "@/application/use-cases/GetWeeklyStatisticsUseCase";
+import { YearlyStatistics } from "@/application/use-cases/GetYearlyStatisticsUseCase";
+import { DailyHourlyStatistics } from "@/application/use-cases/GetDailyHourlyStatisticsUseCase";
+import { NextHydrationInfo } from "@/application/use-cases/GetNextHydrationTimeUseCase";
+import HydrationHistory from "@/presentation/components/HydrationHistory";
+import DailySummary from "@/presentation/components/DailySummary";
+import ReminderSettingsComponent from "@/presentation/components/ReminderSettings";
+import ReminderNotification from "@/presentation/components/ReminderNotification";
+import GoalSettings from "@/presentation/components/GoalSettings";
+import WeeklyChart from "@/presentation/components/WeeklyChart";
+import YearlyChart from "@/presentation/components/YearlyChart";
+import DailyHourlyChart from "@/presentation/components/DailyHourlyChart";
+import NextHydrationTimer from "@/presentation/components/NextHydrationTimer";
+import UserProfileSettings from "@/presentation/components/UserProfileSettings";
+import DataManagementSettings from "@/presentation/components/DataManagementSettings";
+import AppearanceSettings from "@/presentation/components/AppearanceSettings";
+import QuickActions from "@/presentation/components/QuickActions";
+import HabitTracker from "@/presentation/components/HabitTracker";
+import WeatherIntegration from "@/presentation/components/WeatherIntegration";
+import SmartNotifications from "@/presentation/components/SmartNotifications";
+import HealthcareIntegration from "@/presentation/components/HealthcareIntegration";
 
-const DEFAULT_USER_ID = 'default-user';
+const DEFAULT_USER_ID = "default-user";
 
 export default function Home() {
   const [records, setRecords] = useState<HydrationRecord[]>([]);
-  const [dailySummary, setDailySummary] = useState<DailyHydrationSummary | null>(null);
+  const [dailySummary, setDailySummary] =
+    useState<DailyHydrationSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showReminder, setShowReminder] = useState(false);
   const [currentGoal, setCurrentGoal] = useState(2000);
-  const [activeTab, setActiveTab] = useState<'home' | 'stats' | 'settings'>('home');
-  const [statsTab, setStatsTab] = useState<'today' | 'week' | 'year'>('today');
+  const [activeTab, setActiveTab] = useState<"home" | "stats" | "settings">(
+    "home"
+  );
+  const [statsTab, setStatsTab] = useState<"today" | "week" | "year">("today");
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStatistics | null>(null);
   const [yearlyStats, setYearlyStats] = useState<YearlyStatistics | null>(null);
-  const [todayHourlyStats, setTodayHourlyStats] = useState<DailyHourlyStatistics | null>(null);
-  const [nextHydrationInfo, setNextHydrationInfo] = useState<NextHydrationInfo | null>(null);
+  const [todayHourlyStats, setTodayHourlyStats] =
+    useState<DailyHourlyStatistics | null>(null);
+  const [nextHydrationInfo, setNextHydrationInfo] =
+    useState<NextHydrationInfo | null>(null);
   const [reminderSettings, setReminderSettings] = useState<ReminderSettings>({
     enabled: false,
+    mode: "manual",
     intervalMinutes: 60,
-    startTime: '08:00',
-    endTime: '22:00',
+    startTime: "08:00",
+    endTime: "22:00",
+    autoSettings: {
+      useSmartTiming: true,
+      adaptToWeather: true,
+      adaptToActivity: true,
+    },
   });
 
   const loadData = async () => {
@@ -56,28 +66,37 @@ export default function Home() {
       const weekStart = new Date(today);
       weekStart.setDate(today.getDate() - today.getDay()); // 今週の日曜日
 
-      const [historyResult, summaryResult, weeklyResult, yearlyResult, hourlyResult, nextHydrationResult] = await Promise.all([
-        container.getHydrationHistoryUseCase.execute({ userId: DEFAULT_USER_ID }),
-        container.getDailyHydrationSummaryUseCase.execute({ 
-          userId: DEFAULT_USER_ID, 
-          date: today 
+      const [
+        historyResult,
+        summaryResult,
+        weeklyResult,
+        yearlyResult,
+        hourlyResult,
+        nextHydrationResult,
+      ] = await Promise.all([
+        container.getHydrationHistoryUseCase.execute({
+          userId: DEFAULT_USER_ID,
+        }),
+        container.getDailyHydrationSummaryUseCase.execute({
+          userId: DEFAULT_USER_ID,
+          date: today,
         }),
         container.getWeeklyStatisticsUseCase.execute({
           userId: DEFAULT_USER_ID,
-          weekStartDate: weekStart
+          weekStartDate: weekStart,
         }),
         container.getYearlyStatisticsUseCase.execute({
           userId: DEFAULT_USER_ID,
-          year: today.getFullYear()
+          year: today.getFullYear(),
         }),
         container.getDailyHourlyStatisticsUseCase.execute({
           userId: DEFAULT_USER_ID,
-          date: today
+          date: today,
         }),
         container.getNextHydrationTimeUseCase.execute({
           userId: DEFAULT_USER_ID,
-          reminderSettings
-        })
+          reminderSettings,
+        }),
       ]);
 
       setRecords(historyResult);
@@ -87,31 +106,33 @@ export default function Home() {
       setTodayHourlyStats(hourlyResult);
       setNextHydrationInfo(nextHydrationResult);
     } catch (error) {
-      console.error('データの読み込みに失敗しました:', error);
+      console.error("データの読み込みに失敗しました:", error);
     }
   };
 
   const initializeUser = async () => {
     try {
-      console.log('Initializing user with ID:', DEFAULT_USER_ID);
-      const existingUser = await container.userRepository.findById({ value: DEFAULT_USER_ID });
-      console.log('Existing user:', existingUser);
-      
+      console.log("Initializing user with ID:", DEFAULT_USER_ID);
+      const existingUser = await container.userRepository.findById({
+        value: DEFAULT_USER_ID,
+      });
+      console.log("Existing user:", existingUser);
+
       if (!existingUser) {
-        console.log('Creating new user...');
+        console.log("Creating new user...");
         const newUser = await container.createUserUseCase.execute({
           userId: DEFAULT_USER_ID,
-          name: 'デフォルトユーザー',
+          name: "デフォルトユーザー",
           dailyGoal: 2000,
         });
-        console.log('Created user:', newUser);
+        console.log("Created user:", newUser);
         setCurrentGoal(2000);
       } else {
-        console.log('Using existing user goal:', existingUser.dailyGoal);
+        console.log("Using existing user goal:", existingUser.dailyGoal);
         setCurrentGoal(existingUser.dailyGoal);
       }
     } catch (error) {
-      console.error('ユーザーの初期化に失敗しました:', error);
+      console.error("ユーザーの初期化に失敗しました:", error);
     }
   };
 
@@ -121,20 +142,23 @@ export default function Home() {
       await loadData();
       setIsInitialized(true);
     };
-    
+
     init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     container.hydrationReminderUseCase.startReminder(
       reminderSettings,
-      () => setShowReminder(true)
+      () => setShowReminder(true),
+      records,
+      currentGoal
     );
 
     return () => {
       container.hydrationReminderUseCase.stopReminder();
     };
-  }, [reminderSettings]);
+  }, [reminderSettings, records, currentGoal]);
 
   const handleAddRecord = async (amount: number, note?: string) => {
     setIsLoading(true);
@@ -146,30 +170,37 @@ export default function Home() {
       });
       await loadData();
     } catch (error) {
-      console.error('記録の追加に失敗しました:', error);
+      console.error("記録の追加に失敗しました:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleQuickDrink = async () => {
-    await handleAddRecord(200);
+  const handleQuickDrink = async (amount?: number) => {
+    await handleAddRecord(amount || 200);
   };
 
   const handleQuickRecord = async (amount: number, note?: string) => {
     await handleAddRecord(amount, note);
   };
 
-  const handleWeatherGoalAdjustment = async (newGoal: number, reason: string) => {
+  const handleWeatherGoalAdjustment = async (
+    newGoal: number,
+    reason: string
+  ) => {
     setCurrentGoal(newGoal);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hydration-current-goal', newGoal.toString());
+    if (typeof window !== "undefined") {
+      localStorage.setItem("hydration-current-goal", newGoal.toString());
     }
     console.log(`Goal adjusted to ${newGoal}ml: ${reason}`);
-    await loadData();
+    // loadData()の呼び出しを削除して無限ループを回避
   };
 
-  const handleEditRecord = async (recordId: string, amount: number, note?: string) => {
+  const handleEditRecord = async (
+    recordId: string,
+    amount: number,
+    note?: string
+  ) => {
     setIsLoading(true);
     try {
       await container.updateHydrationRecordUseCase.execute({
@@ -179,7 +210,7 @@ export default function Home() {
       });
       await loadData();
     } catch (error) {
-      console.error('記録の更新に失敗しました:', error);
+      console.error("記録の更新に失敗しました:", error);
     } finally {
       setIsLoading(false);
     }
@@ -193,7 +224,7 @@ export default function Home() {
       });
       await loadData();
     } catch (error) {
-      console.error('記録の削除に失敗しました:', error);
+      console.error("記録の削除に失敗しました:", error);
     } finally {
       setIsLoading(false);
     }
@@ -203,11 +234,13 @@ export default function Home() {
     setIsLoading(true);
     try {
       // ユーザーが存在しない場合は作成
-      const existingUser = await container.userRepository.findById({ value: DEFAULT_USER_ID });
+      const existingUser = await container.userRepository.findById({
+        value: DEFAULT_USER_ID,
+      });
       if (!existingUser) {
         await container.createUserUseCase.execute({
           userId: DEFAULT_USER_ID,
-          name: 'デフォルトユーザー',
+          name: "デフォルトユーザー",
           dailyGoal: newGoal,
         });
       } else {
@@ -217,15 +250,15 @@ export default function Home() {
         });
       }
       setCurrentGoal(newGoal);
-      
+
       // Save goal to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('hydration-current-goal', newGoal.toString());
+      if (typeof window !== "undefined") {
+        localStorage.setItem("hydration-current-goal", newGoal.toString());
       }
-      
+
       await loadData(); // データを再読み込み
     } catch (error) {
-      console.error('目標の更新に失敗しました:', error);
+      console.error("目標の更新に失敗しました:", error);
     } finally {
       setIsLoading(false);
     }
@@ -234,113 +267,165 @@ export default function Home() {
   const handleReminderSettingsChange = (settings: ReminderSettings) => {
     setReminderSettings(settings);
     // Save to localStorage for persistence
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hydration-reminder-settings', JSON.stringify(settings));
+    if (typeof window !== "undefined") {
+      localStorage.setItem(
+        "hydration-reminder-settings",
+        JSON.stringify(settings)
+      );
     }
   };
 
-  const handleProfileUpdate = (profile: any) => {
-    console.log('Profile updated:', profile);
+  const handleProfileUpdate = (profile: {
+    name: string;
+    age: number;
+    weight: number;
+    height: number;
+    activityLevel: 'low' | 'moderate' | 'high' | 'very_high';
+    climate: 'cool' | 'moderate' | 'warm' | 'hot';
+    healthConditions: string[];
+  }) => {
+    console.log("Profile updated:", profile);
     // Optionally update goal based on profile recommendations
     // if (profile.recommendedIntake) {
     //   handleGoalUpdate(profile.recommendedIntake);
     // }
   };
 
-  const handleDataExport = (format: 'json' | 'csv') => {
-    if (typeof window === 'undefined') return;
-    
+  const handleDataExport = (format: "json" | "csv") => {
+    if (typeof window === "undefined") return;
+
     try {
       const allData = {
-        records: JSON.parse(localStorage.getItem('hydration-records') || '[]'),
-        goals: JSON.parse(localStorage.getItem('hydration-goals') || '[]'),
+        records: JSON.parse(localStorage.getItem("hydration-records") || "[]"),
+        goals: JSON.parse(localStorage.getItem("hydration-goals") || "[]"),
         settings: {
           reminderSettings,
           currentGoal,
           activeTab,
           statsTab,
         },
-        profile: JSON.parse(localStorage.getItem('hydration-user-profile') || '{}'),
-        appearance: JSON.parse(localStorage.getItem('hydration-appearance-settings') || '{}'),
+        profile: JSON.parse(
+          localStorage.getItem("hydration-user-profile") || "{}"
+        ),
+        appearance: JSON.parse(
+          localStorage.getItem("hydration-appearance-settings") || "{}"
+        ),
         exportDate: new Date().toISOString(),
-        version: '1.0'
+        version: "1.0",
       };
 
-      if (format === 'json') {
+      if (format === "json") {
         const dataStr = JSON.stringify(allData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const dataBlob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = url;
-        link.download = `hydration-backup-${new Date().toISOString().split('T')[0]}.json`;
+        link.download = `hydration-backup-${
+          new Date().toISOString().split("T")[0]
+        }.json`;
         link.click();
         URL.revokeObjectURL(url);
-      } else if (format === 'csv') {
+      } else if (format === "csv") {
         const records = allData.records;
-        let csvContent = 'Date,Time,Amount(ml),Note\n';
-        records.forEach((record: any) => {
-          const date = new Date(record.timestamp);
-          csvContent += `${date.toDateString()},${date.toTimeString().split(' ')[0]},${record.amount},"${record.note || ''}"\n`;
-        });
-        
-        const dataBlob = new Blob([csvContent], { type: 'text/csv' });
+        let csvContent = "Date,Time,Amount(ml),Note\n";
+        records.forEach(
+          (record: {
+            timestamp: string | number | Date;
+            amount: number;
+            note?: string;
+          }) => {
+            const date = new Date(record.timestamp);
+            csvContent += `${date.toDateString()},${
+              date.toTimeString().split(" ")[0]
+            },${record.amount},"${record.note || ""}"\n`;
+          }
+        );
+
+        const dataBlob = new Blob([csvContent], { type: "text/csv" });
         const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = url;
-        link.download = `hydration-data-${new Date().toISOString().split('T')[0]}.csv`;
+        link.download = `hydration-data-${
+          new Date().toISOString().split("T")[0]
+        }.csv`;
         link.click();
         URL.revokeObjectURL(url);
       }
-      
+
       alert(`データを${format.toUpperCase()}形式でエクスポートしました。`);
     } catch (error) {
-      console.error('Export failed:', error);
-      alert('エクスポートに失敗しました。');
+      console.error("Export failed:", error);
+      alert("エクスポートに失敗しました。");
     }
   };
 
-  const handleDataImport = (data: any) => {
-    if (typeof window === 'undefined') return;
-    
+  const handleDataImport = (data: unknown) => {
+    if (typeof window === "undefined") return;
+
     try {
-      if (data.records) {
-        localStorage.setItem('hydration-records', JSON.stringify(data.records));
+      // Type guard to ensure data is an object
+      if (typeof data !== 'object' || data === null) {
+        throw new Error('Invalid data format');
       }
-      if (data.goals) {
-        localStorage.setItem('hydration-goals', JSON.stringify(data.goals));
+
+      const importData = data as Record<string, unknown>;
+
+      if (importData.records) {
+        localStorage.setItem("hydration-records", JSON.stringify(importData.records));
       }
-      if (data.profile) {
-        localStorage.setItem('hydration-user-profile', JSON.stringify(data.profile));
+      if (importData.goals) {
+        localStorage.setItem("hydration-goals", JSON.stringify(importData.goals));
       }
-      if (data.appearance) {
-        localStorage.setItem('hydration-appearance-settings', JSON.stringify(data.appearance));
+      if (importData.profile) {
+        localStorage.setItem(
+          "hydration-user-profile",
+          JSON.stringify(importData.profile)
+        );
       }
-      if (data.settings) {
-        if (data.settings.reminderSettings) {
-          localStorage.setItem('hydration-reminder-settings', JSON.stringify(data.settings.reminderSettings));
-          setReminderSettings(data.settings.reminderSettings);
+      if (importData.appearance) {
+        localStorage.setItem(
+          "hydration-appearance-settings",
+          JSON.stringify(importData.appearance)
+        );
+      }
+      if (importData.settings && typeof importData.settings === 'object' && importData.settings !== null) {
+        const settings = importData.settings as Record<string, unknown>;
+        
+        if (settings.reminderSettings) {
+          localStorage.setItem(
+            "hydration-reminder-settings",
+            JSON.stringify(settings.reminderSettings)
+          );
+          setReminderSettings(settings.reminderSettings as ReminderSettings);
         }
-        if (data.settings.currentGoal) {
-          localStorage.setItem('hydration-current-goal', data.settings.currentGoal.toString());
-          setCurrentGoal(data.settings.currentGoal);
+        if (settings.currentGoal && typeof settings.currentGoal === 'number') {
+          localStorage.setItem(
+            "hydration-current-goal",
+            settings.currentGoal.toString()
+          );
+          setCurrentGoal(settings.currentGoal);
         }
       }
-      
+
       // Reload data
       loadData();
-      alert('データのインポートが完了しました。ページを再読み込みして最新の状態を反映してください。');
+      alert(
+        "データのインポートが完了しました。ページを再読み込みして最新の状態を反映してください。"
+      );
     } catch (error) {
-      console.error('Import failed:', error);
-      alert('インポートに失敗しました。正しいファイル形式か確認してください。');
+      console.error("Import failed:", error);
+      alert("インポートに失敗しました。正しいファイル形式か確認してください。");
     }
   };
 
   const handleDataClear = () => {
-    if (typeof window === 'undefined') return;
-    
-    const hydrationKeys = Object.keys(localStorage).filter(key => key.startsWith('hydration-'));
-    hydrationKeys.forEach(key => localStorage.removeItem(key));
-    
+    if (typeof window === "undefined") return;
+
+    const hydrationKeys = Object.keys(localStorage).filter((key) =>
+      key.startsWith("hydration-")
+    );
+    hydrationKeys.forEach((key) => localStorage.removeItem(key));
+
     // Reset state
     setRecords([]);
     setDailySummary(null);
@@ -351,57 +436,91 @@ export default function Home() {
     setNextHydrationInfo(null);
     setReminderSettings({
       enabled: false,
+      mode: "manual",
       intervalMinutes: 60,
-      startTime: '08:00',
-      endTime: '22:00',
+      startTime: "08:00",
+      endTime: "22:00",
+      autoSettings: {
+        useSmartTiming: true,
+        adaptToWeather: true,
+        adaptToActivity: true,
+      },
     });
-    
-    alert('すべてのデータが削除されました。');
+
+    alert("すべてのデータが削除されました。");
   };
 
-  const handleAppearanceChange = (settings: any) => {
-    console.log('Appearance settings changed:', settings);
+  const handleAppearanceChange = (settings: {
+    theme: 'light' | 'dark' | 'auto';
+    colorScheme: 'blue' | 'green' | 'purple' | 'orange' | 'pink';
+    fontSize: 'small' | 'medium' | 'large';
+    language: 'ja' | 'en';
+    animations: boolean;
+    compactMode: boolean;
+    showEmojis: boolean;
+    chartStyle: 'modern' | 'classic' | 'minimal';
+  }) => {
+    console.log("Appearance settings changed:", settings);
     // Apply theme changes if needed
   };
 
-  const handleSmartNotificationChange = (settings: any) => {
-    console.log('Smart notification settings changed:', settings);
+  const handleSmartNotificationChange = (settings: {
+    enabled: boolean;
+    learningEnabled: boolean;
+    adaptiveIntervals: boolean;
+    contextAware: boolean;
+    quietHours: { start: string; end: string };
+    minimumInterval: number;
+    maximumInterval: number;
+  }) => {
+    console.log("Smart notification settings changed:", settings);
     // Apply smart notification settings
   };
 
-  const handleHealthDataSync = (data: any) => {
-    console.log('Health data synced:', data);
+  const handleHealthDataSync = (data: {
+    steps: number;
+    heartRate: number;
+    sleep: number;
+    weight: number;
+    lastSync: Date | null;
+  }) => {
+    console.log("Health data synced:", data);
     // Process health data and potentially adjust goals
   };
 
   // Load all settings from localStorage on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       // Load reminder settings
-      const savedReminderSettings = localStorage.getItem('hydration-reminder-settings');
+      const savedReminderSettings = localStorage.getItem(
+        "hydration-reminder-settings"
+      );
       if (savedReminderSettings) {
         try {
           const parsedSettings = JSON.parse(savedReminderSettings);
           setReminderSettings(parsedSettings);
         } catch (error) {
-          console.error('Failed to parse reminder settings:', error);
+          console.error("Failed to parse reminder settings:", error);
         }
       }
 
       // Load active tab
-      const savedActiveTab = localStorage.getItem('hydration-active-tab');
-      if (savedActiveTab && ['home', 'stats', 'settings'].includes(savedActiveTab)) {
-        setActiveTab(savedActiveTab as 'home' | 'stats' | 'settings');
+      const savedActiveTab = localStorage.getItem("hydration-active-tab");
+      if (
+        savedActiveTab &&
+        ["home", "stats", "settings"].includes(savedActiveTab)
+      ) {
+        setActiveTab(savedActiveTab as "home" | "stats" | "settings");
       }
 
       // Load stats tab
-      const savedStatsTab = localStorage.getItem('hydration-stats-tab');
-      if (savedStatsTab && ['today', 'week', 'year'].includes(savedStatsTab)) {
-        setStatsTab(savedStatsTab as 'today' | 'week' | 'year');
+      const savedStatsTab = localStorage.getItem("hydration-stats-tab");
+      if (savedStatsTab && ["today", "week", "year"].includes(savedStatsTab)) {
+        setStatsTab(savedStatsTab as "today" | "week" | "year");
       }
 
       // Load current goal
-      const savedGoal = localStorage.getItem('hydration-current-goal');
+      const savedGoal = localStorage.getItem("hydration-current-goal");
       if (savedGoal) {
         const goalValue = parseInt(savedGoal);
         if (goalValue > 0) {
@@ -425,7 +544,7 @@ export default function Home() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="space-y-6">
           {dailySummary && <DailySummary summary={dailySummary} />}
-          
+
           {nextHydrationInfo && (
             <NextHydrationTimer
               nextHydrationInfo={nextHydrationInfo}
@@ -433,34 +552,35 @@ export default function Home() {
               onRefreshTimer={() => loadData()}
               records={records}
               reminderSettings={reminderSettings}
+              currentGoal={currentGoal}
             />
           )}
 
           {/* 習慣トラッカー */}
-          <HabitTracker 
+          <HabitTracker
             records={records}
             dailySummary={dailySummary}
             currentGoal={currentGoal}
           />
         </div>
-        
+
         <div className="space-y-6">
           {/* クイックアクション */}
-          <QuickActions 
+          <QuickActions
             onQuickRecord={handleQuickRecord}
             isLoading={isLoading}
           />
 
-          <div className="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-xl p-6 border border-blue-100">
+          {/* <div className="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-xl p-6 border border-blue-100">
             <div className="text-center mb-6">
               <h2 className="text-xl font-bold text-gray-800 mb-2">水分補給を記録</h2>
               <p className="text-sm text-gray-500">飲んだ量をタップして記録しよう</p>
             </div>
             <HydrationForm onSubmit={handleAddRecord} isLoading={isLoading} />
-          </div>
-          
-          <HydrationHistory 
-            records={records} 
+          </div> */}
+
+          <HydrationHistory
+            records={records}
             onEdit={handleEditRecord}
             onDelete={handleDeleteRecord}
           />
@@ -475,23 +595,23 @@ export default function Home() {
       <div className="bg-white rounded-2xl p-2 shadow-lg border border-gray-100">
         <div className="grid grid-cols-3 gap-1">
           {[
-            { key: 'today', label: '今日', emoji: '⏰' },
-            { key: 'week', label: '週間', emoji: '📊' },
-            { key: 'year', label: '年間', emoji: '📈' },
+            { key: "today", label: "今日", emoji: "⏰" },
+            { key: "week", label: "週間", emoji: "📊" },
+            { key: "year", label: "年間", emoji: "📈" },
           ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => {
                 const newStatsTab = tab.key as typeof statsTab;
                 setStatsTab(newStatsTab);
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('hydration-stats-tab', newStatsTab);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("hydration-stats-tab", newStatsTab);
                 }
               }}
               className={`py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
                 statsTab === tab.key
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md"
+                  : "text-gray-600 hover:bg-gray-50"
               }`}
             >
               <div className="text-lg">{tab.emoji}</div>
@@ -503,13 +623,13 @@ export default function Home() {
 
       {/* 統計グラフ - PC用：大きなサイズ */}
       <div className="w-full">
-        {statsTab === 'today' && todayHourlyStats && (
+        {statsTab === "today" && todayHourlyStats && (
           <DailyHourlyChart data={todayHourlyStats} />
         )}
-        {statsTab === 'week' && weeklyStats && (
+        {statsTab === "week" && weeklyStats && (
           <WeeklyChart data={weeklyStats} />
         )}
-        {statsTab === 'year' && yearlyStats && (
+        {statsTab === "year" && yearlyStats && (
           <YearlyChart data={yearlyStats} />
         )}
       </div>
@@ -525,7 +645,7 @@ export default function Home() {
           onGoalUpdate={handleGoalUpdate}
           isLoading={isLoading}
         />
-        <ReminderSettingsComponent 
+        <ReminderSettingsComponent
           settings={reminderSettings}
           onSettingsChange={handleReminderSettingsChange}
         />
@@ -539,9 +659,7 @@ export default function Home() {
 
       {/* プロフィール設定と天気連携 - 横2列レイアウト */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UserProfileSettings
-          onProfileUpdate={handleProfileUpdate}
-        />
+        <UserProfileSettings onProfileUpdate={handleProfileUpdate} />
         <WeatherIntegration
           currentGoal={currentGoal}
           onGoalAdjustment={handleWeatherGoalAdjustment}
@@ -549,15 +667,11 @@ export default function Home() {
       </div>
 
       {/* ヘルスケア連携 */}
-      <HealthcareIntegration
-        onDataSync={handleHealthDataSync}
-      />
+      <HealthcareIntegration onDataSync={handleHealthDataSync} />
 
       {/* 外観設定とデータ管理 - 横2列レイアウト */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AppearanceSettings
-          onSettingsChange={handleAppearanceChange}
-        />
+        <AppearanceSettings onSettingsChange={handleAppearanceChange} />
         <DataManagementSettings
           onDataExport={handleDataExport}
           onDataImport={handleDataImport}
@@ -585,23 +699,23 @@ export default function Home() {
         <div className="bg-white rounded-2xl p-2 shadow-lg border border-gray-100 sticky top-4 z-10">
           <div className="grid grid-cols-3 md:grid-cols-3 gap-1">
             {[
-              { key: 'home', label: 'ホーム', emoji: '🏠' },
-              { key: 'stats', label: '統計', emoji: '📊' },
-              { key: 'settings', label: '設定', emoji: '⚙️' },
+              { key: "home", label: "ホーム", emoji: "🏠" },
+              { key: "stats", label: "統計", emoji: "📊" },
+              { key: "settings", label: "設定", emoji: "⚙️" },
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => {
                   const newTab = tab.key as typeof activeTab;
                   setActiveTab(newTab);
-                  if (typeof window !== 'undefined') {
-                    localStorage.setItem('hydration-active-tab', newTab);
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem("hydration-active-tab", newTab);
                   }
                 }}
                 className={`py-3 px-4 md:py-4 md:px-6 rounded-xl font-medium transition-all duration-200 ${
                   activeTab === tab.key
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-50"
                 }`}
               >
                 <div className="text-lg md:text-xl">{tab.emoji}</div>
@@ -612,15 +726,13 @@ export default function Home() {
         </div>
 
         {/* メインコンテンツ */}
-        {activeTab === 'home' && renderHomeTab()}
-        {activeTab === 'stats' && renderStatsTab()}
-        {activeTab === 'settings' && renderSettingsTab()}
+        {activeTab === "home" && renderHomeTab()}
+        {activeTab === "stats" && renderStatsTab()}
+        {activeTab === "settings" && renderSettingsTab()}
 
         {/* フッター */}
         <footer className="text-center pt-4 pb-8">
-          <p className="text-xs text-gray-500">
-            健康的な1日を送りましょう ✨
-          </p>
+          <p className="text-xs text-gray-500">健康的な1日を送りましょう ✨</p>
         </footer>
 
         {/* リマインダー通知 */}
