@@ -126,7 +126,9 @@ export class NotificationService {
   playNotificationSound(): void {
     try {
       // Web Audio API を使用してビープ音を生成
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const audioContext = new AudioContextClass();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
