@@ -1,4 +1,4 @@
-import { HydrationRecord } from '@/domain/entities/HydrationRecord';
+import { HydrationRecord } from "@/domain/entities/HydrationRecord";
 
 export interface SmartReminderCalculation {
   nextReminderTime: Date;
@@ -25,25 +25,32 @@ export class SmartReminderService {
     records: HydrationRecord[],
     currentGoal: number,
     weatherAdjustment: number = 1.0,
-    activityLevel: 'low' | 'medium' | 'high' = 'medium'
+    activityLevel: "low" | "medium" | "high" = "medium"
   ): SmartReminderCalculation {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+
     // 今日の記録を取得
-    const todayRecords = records.filter(record => 
-      record.timestamp >= todayStart
-    ).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const todayRecords = records
+      .filter((record) => record.timestamp >= todayStart)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
     // 今日の摂取量を計算
-    const todayIntake = todayRecords.reduce((sum, record) => sum + record.amount, 0);
+    const todayIntake = todayRecords.reduce(
+      (sum, record) => sum + record.amount,
+      0
+    );
     const remainingGoal = Math.max(0, currentGoal - todayIntake);
 
     // 活動レベルによる調整係数
     const activityMultiplier = {
-      'low': 0.8,
-      'medium': 1.0,
-      'high': 1.3
+      low: 0.8,
+      medium: 1.0,
+      high: 1.3,
     }[activityLevel];
 
     // 基本間隔を計算（残り時間と目標に基づく）
@@ -54,14 +61,24 @@ export class SmartReminderService {
       activityMultiplier * weatherAdjustment
     );
 
+    console.log(baseInterval, "inte");
+
     // ユーザーの過去の飲水パターンを分析
     const patternAdjustment = this.analyzeUserPattern(records, now);
 
     // 最終的な間隔を決定
-    const finalInterval = Math.max(15, Math.min(180, baseInterval + patternAdjustment));
-    
-    const nextTime = new Date(now.getTime() + finalInterval * 60 * 1000);
-    
+    const finalInterval = Math.max(
+      15,
+      Math.min(180, baseInterval + patternAdjustment)
+    );
+
+    // 最後の記録時刻から次回時間を算出
+    const lastRecordTime = todayRecords.length > 0 
+      ? todayRecords[todayRecords.length - 1].timestamp 
+      : now; // 記録がない場合は現在時刻から
+
+    const nextTime = new Date(lastRecordTime.getTime() + finalInterval * 60 * 1000);
+
     // 推奨摂取量を計算
     const recommendedAmountCalc = this.calculateRecommendedAmount(
       remainingGoal,
@@ -69,13 +86,18 @@ export class SmartReminderService {
       todayRecords,
       activityMultiplier * weatherAdjustment
     );
-    
+
     return {
       nextReminderTime: nextTime,
       intervalMinutes: finalInterval,
-      reason: this.generateReasonText(finalInterval, remainingGoal, weatherAdjustment, activityLevel),
+      reason: this.generateReasonText(
+        finalInterval,
+        remainingGoal,
+        weatherAdjustment,
+        activityLevel
+      ),
       recommendedAmount: recommendedAmountCalc.amount,
-      recommendedAmountReason: recommendedAmountCalc.reason
+      recommendedAmountReason: recommendedAmountCalc.reason,
     };
   }
 
@@ -86,7 +108,7 @@ export class SmartReminderService {
     adjustmentFactor: number
   ): number {
     const currentHour = currentTime.getHours();
-    
+
     // 夜は間隔を長くする
     if (currentHour >= 22 || currentHour <= 6) {
       return 120; // 2時間
@@ -98,13 +120,16 @@ export class SmartReminderService {
     }
 
     // 最近の摂取パターンを考慮
-    const recentRecords = todayRecords.filter(record => {
+    const recentRecords = todayRecords.filter((record) => {
       const timeDiff = currentTime.getTime() - record.timestamp.getTime();
       return timeDiff <= 2 * 60 * 60 * 1000; // 過去2時間
     });
 
-    const recentIntake = recentRecords.reduce((sum, record) => sum + record.amount, 0);
-    
+    const recentIntake = recentRecords.reduce(
+      (sum, record) => sum + record.amount,
+      0
+    );
+
     // 最近飲んだ場合は間隔を長くする
     if (recentIntake > 300) {
       return Math.round(90 / adjustmentFactor);
@@ -116,19 +141,22 @@ export class SmartReminderService {
     }
   }
 
-  private analyzeUserPattern(records: HydrationRecord[], currentTime: Date): number {
+  private analyzeUserPattern(
+    records: HydrationRecord[],
+    currentTime: Date
+  ): number {
     if (records.length < 7) {
       return 0; // データ不足の場合は調整なし
     }
 
     const currentHour = currentTime.getHours();
-    const pastWeekRecords = records.filter(record => {
+    const pastWeekRecords = records.filter((record) => {
       const timeDiff = currentTime.getTime() - record.timestamp.getTime();
       return timeDiff <= 7 * 24 * 60 * 60 * 1000; // 過去1週間
     });
 
     // 同じ時間帯の過去の摂取パターンを分析
-    const similarTimeRecords = pastWeekRecords.filter(record => {
+    const similarTimeRecords = pastWeekRecords.filter((record) => {
       const recordHour = record.timestamp.getHours();
       return Math.abs(recordHour - currentHour) <= 1;
     });
@@ -155,7 +183,7 @@ export class SmartReminderService {
     adjustmentFactor: number
   ): { amount: number; reason: string } {
     const currentHour = currentTime.getHours();
-    
+
     // 基本推奨量（一回あたりの標準的な摂取量）
     let baseAmount = 200;
     const reasons = [];
@@ -163,56 +191,58 @@ export class SmartReminderService {
     // 時間帯による調整
     if (currentHour >= 6 && currentHour <= 9) {
       baseAmount = 250; // 起床後は多めに
-      reasons.push('起床後の水分補給');
+      reasons.push("起床後の水分補給");
     } else if (currentHour >= 22 || currentHour <= 6) {
       baseAmount = 150; // 夜間は少なめに
-      reasons.push('夜間の適度な水分補給');
+      reasons.push("夜間の適度な水分補給");
     }
 
     // 残りゴールによる調整
     if (remainingGoal > 1500) {
       baseAmount = Math.min(300, baseAmount + 50);
-      reasons.push('目標達成のため多めに');
+      reasons.push("目標達成のため多めに");
     } else if (remainingGoal < 500) {
       baseAmount = Math.max(100, baseAmount - 50);
-      reasons.push('目標に近いため適量を');
+      reasons.push("目標に近いため適量を");
     }
 
     // 最近の摂取パターンによる調整
-    const recentRecords = todayRecords.filter(record => {
+    const recentRecords = todayRecords.filter((record) => {
       const timeDiff = currentTime.getTime() - record.timestamp.getTime();
       return timeDiff <= 2 * 60 * 60 * 1000; // 過去2時間
     });
 
-    const recentIntake = recentRecords.reduce((sum, record) => sum + record.amount, 0);
-    
+    const recentIntake = recentRecords.reduce(
+      (sum, record) => sum + record.amount,
+      0
+    );
+
     if (recentIntake > 500) {
       baseAmount = Math.max(100, baseAmount - 50);
-      reasons.push('最近多く飲んでいるため控えめに');
+      reasons.push("最近多く飲んでいるため控えめに");
     } else if (recentIntake < 100) {
       baseAmount = Math.min(350, baseAmount + 50);
-      reasons.push('最近の摂取量が少ないため多めに');
+      reasons.push("最近の摂取量が少ないため多めに");
     }
 
     // 活動レベル・天気による調整
     const finalAmount = Math.round(baseAmount * adjustmentFactor);
-    
+
     if (adjustmentFactor > 1.1) {
-      reasons.push('暑い環境での調整');
+      reasons.push("暑い環境での調整");
     } else if (adjustmentFactor < 0.9) {
-      reasons.push('涼しい環境での調整');
+      reasons.push("涼しい環境での調整");
     }
 
     // 最終的な推奨量を100-400mlの範囲に制限
     const recommendedAmount = Math.max(100, Math.min(400, finalAmount));
-    
-    const reasonText = reasons.length > 0 
-      ? reasons.join('、') 
-      : '標準的な摂取量';
+
+    const reasonText =
+      reasons.length > 0 ? reasons.join("、") : "標準的な摂取量";
 
     return {
       amount: recommendedAmount,
-      reason: reasonText
+      reason: reasonText,
     };
   }
 
@@ -225,28 +255,28 @@ export class SmartReminderService {
     const reasons = [];
 
     if (remainingGoal > 1000) {
-      reasons.push('目標達成まで多くの水分が必要');
+      reasons.push("目標達成まで多くの水分が必要");
     } else if (remainingGoal < 200) {
-      reasons.push('目標にもう少しで到達');
+      reasons.push("目標にもう少しで到達");
     }
 
     if (weatherAdjustment > 1.1) {
-      reasons.push('暑い天候による調整');
+      reasons.push("暑い天候による調整");
     } else if (weatherAdjustment < 0.9) {
-      reasons.push('涼しい天候による調整');
+      reasons.push("涼しい天候による調整");
     }
 
-    if (activityLevel === 'high') {
-      reasons.push('高い活動レベル');
-    } else if (activityLevel === 'low') {
-      reasons.push('低い活動レベル');
+    if (activityLevel === "high") {
+      reasons.push("高い活動レベル");
+    } else if (activityLevel === "low") {
+      reasons.push("低い活動レベル");
     }
 
     if (reasons.length === 0) {
       return `標準的な推奨間隔（${intervalMinutes}分）`;
     }
 
-    return `${intervalMinutes}分間隔 - ${reasons.join('、')}`;
+    return `${intervalMinutes}分間隔 - ${reasons.join("、")}`;
   }
 
   /**
@@ -259,32 +289,114 @@ export class SmartReminderService {
   ): Date[] {
     const schedule: Date[] = [];
     const now = new Date();
-    
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
-    
-    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startHour, startMinute);
-    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endHour, endMinute);
-    
+
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
+
+    const startDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      startHour,
+      startMinute
+    );
+    const endDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      endHour,
+      endMinute
+    );
+
     // 基本的な推奨タイミング
     const optimalTimes = [
-      { hour: 7, minute: 0, priority: 0.9 },   // 起床後
-      { hour: 10, minute: 0, priority: 0.8 },  // 午前中
+      { hour: 7, minute: 0, priority: 0.9 }, // 起床後
+      { hour: 10, minute: 0, priority: 0.8 }, // 午前中
       { hour: 12, minute: 30, priority: 0.7 }, // 昼食後
-      { hour: 15, minute: 0, priority: 0.8 },  // 午後
-      { hour: 18, minute: 0, priority: 0.7 },  // 夕方
-      { hour: 20, minute: 0, priority: 0.6 },  // 夜
+      { hour: 15, minute: 0, priority: 0.8 }, // 午後
+      { hour: 18, minute: 0, priority: 0.7 }, // 夕方
+      { hour: 20, minute: 0, priority: 0.6 }, // 夜
     ];
 
     for (const time of optimalTimes) {
-      const scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), time.hour, time.minute);
-      
-      if (scheduledTime >= startDate && scheduledTime <= endDate && scheduledTime > now) {
+      const scheduledTime = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        time.hour,
+        time.minute
+      );
+
+      if (
+        scheduledTime >= startDate &&
+        scheduledTime <= endDate &&
+        scheduledTime > now
+      ) {
         schedule.push(scheduledTime);
       }
     }
 
     return schedule.sort((a, b) => a.getTime() - b.getTime());
+  }
+
+  /**
+   * 最終記録からの経過時間を算出
+   */
+  getTimeSinceLastRecord(records: HydrationRecord[]): {
+    timeSinceLastRecordMinutes: number;
+    lastRecordTime: Date | null;
+    formattedTime: string;
+  } {
+    if (records.length === 0) {
+      return {
+        timeSinceLastRecordMinutes: -1,
+        lastRecordTime: null,
+        formattedTime: "記録がありません",
+      };
+    }
+
+    // 記録を時刻順でソート（最新が最初）
+    const sortedRecords = records.sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+    );
+    const lastRecord = sortedRecords[0];
+    const now = new Date();
+
+    const timeDiffMs = now.getTime() - lastRecord.timestamp.getTime();
+    const timeDiffMinutes = Math.floor(timeDiffMs / (1000 * 60));
+
+    // 経過時間を人間が読みやすい形式にフォーマット
+    const formatTimeDifference = (minutes: number): string => {
+      if (minutes < 1) {
+        return "たった今";
+      } else if (minutes < 60) {
+        return `${minutes}分前`;
+      } else if (minutes < 1440) {
+        // 24時間未満
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+        if (remainingMinutes === 0) {
+          return `${hours}時間前`;
+        } else {
+          return `${hours}時間${remainingMinutes}分前`;
+        }
+      } else {
+        // 24時間以上
+        const days = Math.floor(minutes / 1440);
+        const remainingHours = Math.floor((minutes % 1440) / 60);
+        if (remainingHours === 0) {
+          return `${days}日前`;
+        } else {
+          return `${days}日${remainingHours}時間前`;
+        }
+      }
+    };
+
+    return {
+      timeSinceLastRecordMinutes: timeDiffMinutes,
+      lastRecordTime: lastRecord.timestamp,
+      formattedTime: formatTimeDifference(timeDiffMinutes),
+    };
   }
 
   /**
@@ -296,7 +408,7 @@ export class SmartReminderService {
     currentTime: Date
   ): { amount: number; reason: string } {
     const currentHour = currentTime.getHours();
-    
+
     // 基本的な1回あたりの推奨量
     let baseAmount = 200;
     const reasons = [];
@@ -304,40 +416,41 @@ export class SmartReminderService {
     // 間隔による調整
     if (intervalMinutes <= 30) {
       baseAmount = 150; // 短い間隔なら少量
-      reasons.push('短い間隔での適量');
+      reasons.push("短い間隔での適量");
     } else if (intervalMinutes >= 120) {
       baseAmount = 300; // 長い間隔なら多量
-      reasons.push('長い間隔での補給');
+      reasons.push("長い間隔での補給");
     }
 
     // 時間帯による調整
     if (currentHour >= 6 && currentHour <= 9) {
       baseAmount += 50; // 起床後は多めに
-      reasons.push('起床後の水分補給');
+      reasons.push("起床後の水分補給");
     } else if (currentHour >= 22 || currentHour <= 6) {
       baseAmount -= 50; // 夜間は少なめに
-      reasons.push('夜間の適度な補給');
+      reasons.push("夜間の適度な補給");
     }
 
     // 残りゴールによる調整
     if (remainingGoal > 1000) {
       baseAmount += 50;
-      reasons.push('目標達成のため多めに');
+      reasons.push("目標達成のため多めに");
     } else if (remainingGoal < 300) {
       baseAmount -= 50;
-      reasons.push('目標に近いため適量を');
+      reasons.push("目標に近いため適量を");
     }
 
     // 最終的な推奨量を100-400mlの範囲に制限
     const recommendedAmount = Math.max(100, Math.min(400, baseAmount));
-    
-    const reasonText = reasons.length > 0 
-      ? reasons.join('、') 
-      : `${intervalMinutes}分間隔での標準量`;
+
+    const reasonText =
+      reasons.length > 0
+        ? reasons.join("、")
+        : `${intervalMinutes}分間隔での標準量`;
 
     return {
       amount: recommendedAmount,
-      reason: reasonText
+      reason: reasonText,
     };
   }
 }

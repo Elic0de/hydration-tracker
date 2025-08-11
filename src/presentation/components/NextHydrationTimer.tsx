@@ -27,48 +27,39 @@ export default function NextHydrationTimer({
   const [smartCalculatedNext, setSmartCalculatedNext] = useState<Date | null>(
     null
   );
+  const [nextCalculatedTime, setNextCalculatedTime] = useState<Date | null>(
+    null
+  );
   const [smartReason, setSmartReason] = useState<string>("");
   const [recommendedAmount, setRecommendedAmount] = useState<number>(200);
   const [recommendedAmountReason, setRecommendedAmountReason] =
     useState<string>("");
   const [lastUpdateTime, setLastUpdateTime] = useState(new Date());
+  const [lastRecordInfo, setLastRecordInfo] = useState<{
+    timeSinceLastRecordMinutes: number;
+    lastRecordTime: Date | null;
+    formattedTime: string;
+  } | null>(null);
 
   const smartReminderService = SmartReminderService.getInstance();
 
-  // 初期推奨量設定
+  // 次回時間とおすすめ量の計算
   useEffect(() => {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayRecords = records.filter(
-      (record) => record.timestamp >= todayStart
-    );
-    const todayIntake = todayRecords.reduce(
-      (sum, record) => sum + record.amount,
-      0
-    );
-    const remainingGoal = Math.max(0, currentGoal - todayIntake);
-
-    if (reminderSettings.mode === "manual") {
-      const amountCalc = smartReminderService.calculateManualRecommendedAmount(
-        remainingGoal,
-        reminderSettings.intervalMinutes,
-        new Date()
-      );
-      setRecommendedAmount(amountCalc.amount);
-      setRecommendedAmountReason(amountCalc.reason);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reminderSettings.mode, reminderSettings.intervalMinutes, currentGoal]);
-
-  // リアルタイム更新
-  useEffect(() => {
-    const timer = setInterval(() => {
+    const calculateNextTimeAndAmount = () => {
       const now = new Date();
-      setLastUpdateTime(now);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayRecords = records.filter(
+        (record) => record.timestamp >= todayStart
+      );
+      const todayIntake = todayRecords.reduce(
+        (sum, record) => sum + record.amount,
+        0
+      );
+      const remainingGoal = Math.max(0, currentGoal - todayIntake);
 
       let nextTime: Date | null = null;
 
-      // モードに応じて次回時間を計算（依存関係の問題を回避するため直接計算）
       if (reminderSettings.mode === "auto") {
         if (reminderSettings.autoSettings?.useSmartTiming) {
           try {
@@ -87,28 +78,16 @@ export default function NextHydrationTimer({
           } catch (error) {
             console.error("Smart calculation failed:", error);
             nextTime = nextHydrationInfo.nextReminderTime;
+            setSmartCalculatedNext(nextTime);
           }
         } else {
-          // オートモードだがスマートタイミングが無効の場合、基本的なオート計算
           nextTime = nextHydrationInfo.nextReminderTime;
           setSmartCalculatedNext(nextTime);
-
-          // 推奨摂取量もデフォルト値で設定
-          const todayStart = new Date();
-          todayStart.setHours(0, 0, 0, 0);
-          const todayRecords = records.filter(
-            (record) => record.timestamp >= todayStart
-          );
-          const todayIntake = todayRecords.reduce(
-            (sum, record) => sum + record.amount,
-            0
-          );
-          const remainingGoal = Math.max(0, currentGoal - todayIntake);
 
           const amountCalc =
             smartReminderService.calculateManualRecommendedAmount(
               remainingGoal,
-              60, // デフォルト60分間隔
+              60,
               now
             );
 
@@ -117,18 +96,6 @@ export default function NextHydrationTimer({
           setSmartReason("基本的な自動スケジュール");
         }
       } else if (reminderSettings.mode === "manual") {
-        // マニュアルモードの計算
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const todayRecords = records.filter(
-          (record) => record.timestamp >= todayStart
-        );
-        const todayIntake = todayRecords.reduce(
-          (sum, record) => sum + record.amount,
-          0
-        );
-        const remainingGoal = Math.max(0, currentGoal - todayIntake);
-
         const amountCalc =
           smartReminderService.calculateManualRecommendedAmount(
             remainingGoal,
@@ -139,8 +106,9 @@ export default function NextHydrationTimer({
         setRecommendedAmount(amountCalc.amount);
         setRecommendedAmountReason(amountCalc.reason);
 
-        // 次回時間計算
+        // 最終記録から次回時間を計算（更新でリセットされないように）
         if (!records || records.length === 0) {
+          // 記録がない場合は現在時刻から間隔分後
           const next = new Date();
           next.setMinutes(next.getMinutes() + reminderSettings.intervalMinutes);
           nextTime = next;
@@ -150,7 +118,7 @@ export default function NextHydrationTimer({
               new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
           );
           const lastRecord = sortedRecords[0];
-
+          console.log(lastRecord.timestamp);
           if (lastRecord) {
             const lastDrinkTime = new Date(lastRecord.timestamp);
             const calculatedNext = new Date(lastDrinkTime);
@@ -158,14 +126,29 @@ export default function NextHydrationTimer({
               calculatedNext.getMinutes() + reminderSettings.intervalMinutes
             );
 
-            // 現在時刻を過ぎている場合は調整
-            if (calculatedNext <= now) {
-              const next = new Date();
-              next.setMinutes(
-                next.getMinutes() + reminderSettings.intervalMinutes
-              );
-              nextTime = next;
+            // 計算された次回時間が現在時刻を過ぎていても、まだ適切な時間内であれば保持
+            const timeSinceLastRecord =
+              (now.getTime() - lastDrinkTime.getTime()) / 1000 / 60; // 分単位
+            const allowedDelay = Math.min(
+              30,
+              reminderSettings.intervalMinutes * 0.5
+            ); // 最大30分または間隔の50%まで遅延許可
+
+            if (
+              timeSinceLastRecord >= reminderSettings.intervalMinutes &&
+              timeSinceLastRecord <=
+                reminderSettings.intervalMinutes + allowedDelay
+            ) {
+              // 適切な時間範囲内なので、計算された時間を保持（過去でも表示）
+              nextTime = calculatedNext;
+            } else if (
+              timeSinceLastRecord >
+              reminderSettings.intervalMinutes + allowedDelay
+            ) {
+              // 大幅に遅延している場合は即座に通知
+              nextTime = now;
             } else {
+              // まだ時間前なので、計算された時間を使用
               nextTime = calculatedNext;
             }
           } else {
@@ -178,12 +161,34 @@ export default function NextHydrationTimer({
         }
       }
 
-      // フォールバック
       if (!nextTime) {
         nextTime = nextHydrationInfo.nextReminderTime;
+        setSmartCalculatedNext(nextTime);
       }
 
-      // カウントダウン更新
+      setNextCalculatedTime(nextTime);
+
+      // 最終記録からの経過時間を計算
+      const lastRecordCalc =
+        smartReminderService.getTimeSinceLastRecord(records);
+      setLastRecordInfo(lastRecordCalc);
+    };
+
+    calculateNextTimeAndAmount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [records, reminderSettings, currentGoal, nextHydrationInfo]);
+
+  // カウントダウンタイマー（計算された時間を使用）
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setLastUpdateTime(now);
+
+      const nextTime =
+        nextCalculatedTime ||
+        smartCalculatedNext ||
+        nextHydrationInfo.nextReminderTime;
+
       if (nextTime) {
         const timeDiffSeconds = Math.max(
           0,
@@ -194,19 +199,7 @@ export default function NextHydrationTimer({
     }, 1000);
 
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    reminderSettings.mode,
-    reminderSettings.intervalMinutes,
-    reminderSettings.autoSettings,
-    currentGoal,
-    smartReminderService,
-  ]);
-
-  // recordsが変更されたときの依存関係更新
-  useEffect(() => {
-    // recordsが変更されたときだけ、依存関係を更新するためのフラグ
-  }, [records, nextHydrationInfo]);
+  }, [nextCalculatedTime, smartCalculatedNext, nextHydrationInfo]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("ja-JP", {
@@ -288,7 +281,9 @@ export default function NextHydrationTimer({
 
   // 表示する次回時間を決定
   const displayNextTime =
-    smartCalculatedNext || nextHydrationInfo.nextReminderTime;
+    nextCalculatedTime ||
+    smartCalculatedNext ||
+    nextHydrationInfo.nextReminderTime;
 
   return (
     <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-3xl shadow-xl p-6 border border-blue-100">
@@ -390,6 +385,33 @@ export default function NextHydrationTimer({
           </div>
         )}
       </div>
+
+      {/* 最終記録情報 */}
+      {lastRecordInfo && (
+        <div className="bg-white/50 backdrop-blur rounded-xl p-4 mb-4 border border-blue-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="text-2xl mr-3">⏱️</div>
+              <div>
+                <div className="text-sm font-medium text-gray-700">
+                  最終記録から
+                </div>
+                <div className="text-lg font-bold text-blue-600">
+                  {lastRecordInfo.formattedTime}
+                </div>
+              </div>
+            </div>
+            {lastRecordInfo.lastRecordTime && (
+              <div className="text-right">
+                <div className="text-xs text-gray-500">最終記録</div>
+                <div className="text-sm font-medium text-gray-700">
+                  {formatTime(lastRecordInfo.lastRecordTime)}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* モード詳細情報 */}
       <div className="bg-white/40 backdrop-blur rounded-xl p-4 mb-6">
