@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { 
   initPWA, 
   getPWAInstallInfo, 
-  showPWAInstallPrompt, 
-  requestNotificationPermission,
+  showPWAInstallPrompt,
   PWAInstallInfo 
 } from '@/utils/pwa';
 
@@ -62,10 +61,6 @@ export default function PWAInitializer() {
     }
   };
 
-  const handleNotificationPermission = async () => {
-    const permission = await requestNotificationPermission();
-    console.log('Notification permission:', permission);
-  };
 
   // Don't show install prompt if already installed or can't install
   if (!showInstallPrompt || !installInfo.canInstall || installInfo.isInstalled) {
