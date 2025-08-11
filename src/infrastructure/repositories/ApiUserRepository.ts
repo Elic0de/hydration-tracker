@@ -1,6 +1,14 @@
 import { UserRepository } from '@/domain/repositories/UserRepository';
 import { User, UserId } from '@/domain/entities/User';
 
+interface UserDto {
+  id: string;
+  name: string;
+  dailyGoal: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class ApiUserRepository implements UserRepository {
   private readonly baseUrl: string;
 
@@ -51,14 +59,14 @@ export class ApiUserRepository implements UserRepository {
       }
       
       const data = await response.json();
-      return data.map((item: any) => this.mapToEntity(item));
+      return data.map((item: UserDto) => this.mapToEntity(item));
     } catch (error) {
       console.error('Error fetching users:', error);
       throw error;
     }
   }
 
-  private mapToEntity(data: any): User {
+  private mapToEntity(data: UserDto): User {
     return {
       id: { value: data.id },
       name: data.name,
@@ -68,7 +76,7 @@ export class ApiUserRepository implements UserRepository {
     };
   }
 
-  private mapToDto(user: User): any {
+  private mapToDto(user: User): UserDto {
     return {
       id: user.id.value,
       name: user.name,
