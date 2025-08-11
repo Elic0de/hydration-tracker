@@ -2,6 +2,14 @@ import { HydrationRecordRepository } from '@/domain/repositories/HydrationRecord
 import { HydrationRecord, HydrationRecordId } from '@/domain/entities/HydrationRecord';
 import { UserId } from '@/domain/entities/User';
 
+interface HydrationRecordDto {
+  id: string;
+  userId: string;
+  amount: number;
+  timestamp: string;
+  note?: string;
+}
+
 export class ApiHydrationRecordRepository implements HydrationRecordRepository {
   private readonly baseUrl: string;
 
@@ -52,7 +60,7 @@ export class ApiHydrationRecordRepository implements HydrationRecordRepository {
       }
       
       const data = await response.json();
-      return data.map((item: any) => this.mapToEntity(item));
+      return data.map((item: HydrationRecordDto) => this.mapToEntity(item));
     } catch (error) {
       console.error('Error fetching hydration records by user:', error);
       throw error;
@@ -77,7 +85,7 @@ export class ApiHydrationRecordRepository implements HydrationRecordRepository {
       }
       
       const data = await response.json();
-      return data.map((item: any) => this.mapToEntity(item));
+      return data.map((item: HydrationRecordDto) => this.mapToEntity(item));
     } catch (error) {
       console.error('Error fetching hydration records by date range:', error);
       throw error;
@@ -99,7 +107,7 @@ export class ApiHydrationRecordRepository implements HydrationRecordRepository {
     }
   }
 
-  private mapToEntity(data: any): HydrationRecord {
+  private mapToEntity(data: HydrationRecordDto): HydrationRecord {
     return {
       id: { value: data.id },
       userId: { value: data.userId },
@@ -109,7 +117,7 @@ export class ApiHydrationRecordRepository implements HydrationRecordRepository {
     };
   }
 
-  private mapToDto(record: HydrationRecord): any {
+  private mapToDto(record: HydrationRecord): HydrationRecordDto {
     return {
       id: record.id.value,
       userId: record.userId.value,
