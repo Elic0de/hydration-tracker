@@ -1,6 +1,5 @@
 import { HydrationRecordRepository } from '@/domain/repositories/HydrationRecordRepository';
-import { HydrationRecord, HydrationRecordId } from '@/domain/entities/HydrationRecord';
-import { UserId } from '@/domain/entities/User';
+import { HydrationRecord } from '@/domain/entities/HydrationRecord';
 
 export interface AddHydrationRecordRequest {
   userId: string;
