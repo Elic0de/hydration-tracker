@@ -1,6 +1,15 @@
 import { GenericGoal, GenericGoalId } from '@/domain/entities/GenericGoal';
 import { GenericGoalRepository } from '@/domain/repositories/GenericGoalRepository';
 
+interface GenericGoalStorageDto {
+  id: { value: string };
+  userId: string;
+  trackerId: string;
+  dailyGoal: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class LocalStorageGenericGoalRepository implements GenericGoalRepository {
   private readonly storageKey = 'generic-goals';
 
@@ -12,7 +21,7 @@ export class LocalStorageGenericGoalRepository implements GenericGoalRepository 
       if (!data) return [];
       
       const parsed = JSON.parse(data);
-      return parsed.map((item: any) => new GenericGoal(
+      return parsed.map((item: GenericGoalStorageDto) => new GenericGoal(
         new GenericGoalId(item.id.value),
         item.userId,
         item.trackerId,

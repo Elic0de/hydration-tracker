@@ -12,6 +12,7 @@ import {
   Tooltip,
   Legend,
   Filler,
+  TooltipItem,
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { YearlyStatistics } from '@/application/use-cases/GetYearlyStatisticsUseCase';
@@ -117,11 +118,11 @@ export default function YearlyChart({ data }: YearlyChartProps) {
         cornerRadius: 8,
         padding: 12,
         callbacks: {
-          label: function(context: any) {
+          label: function(context: TooltipItem<'bar' | 'line'>) {
             const value = context.parsed.y;
             return `平均: ${value}ml/日`;
           },
-          afterBody: function(tooltipItems: any[]) {
+          afterBody: function(tooltipItems: TooltipItem<'bar' | 'line'>[]) {
             if (tooltipItems.length > 0) {
               const index = tooltipItems[0].dataIndex;
               const monthData = data.monthlyData[index];
@@ -149,7 +150,7 @@ export default function YearlyChart({ data }: YearlyChartProps) {
           color: 'rgba(0, 0, 0, 0.1)',
         },
         ticks: {
-          callback: function(value: any) {
+          callback: function(value: string | number) {
             return value + 'ml';
           },
         },

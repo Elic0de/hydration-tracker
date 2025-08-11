@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { TRACKER_TYPES } from '@/domain/entities/TrackerType';
 import { GenericRecord } from '@/domain/entities/GenericRecord';
@@ -24,19 +24,7 @@ export default function GenericTrackerPage() {
 
   const config = TRACKER_TYPES[trackerId];
 
-  if (!config) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">❓</div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">トラッカーが見つかりません</h1>
-          <p className="text-gray-600">指定されたトラッカーは存在しません。</p>
-        </div>
-      </div>
-    );
-  }
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const today = new Date();
       const [historyResult, summaryResult] = await Promise.all([
@@ -56,9 +44,9 @@ export default function GenericTrackerPage() {
     } catch (error) {
       console.error('データの読み込みに失敗しました:', error);
     }
-  };
+  }, [trackerId]);
 
-  const initializeGoal = async () => {
+  const initializeGoal = useCallback(async () => {
     try {
       const existingGoal = await genericContainer.genericGoalRepository.findByUserIdAndTracker(
         DEFAULT_USER_ID,
@@ -75,7 +63,7 @@ export default function GenericTrackerPage() {
     } catch (error) {
       console.error('目標の初期化に失敗しました:', error);
     }
-  };
+  }, [trackerId, config]);
 
   useEffect(() => {
     const init = async () => {
@@ -85,7 +73,19 @@ export default function GenericTrackerPage() {
     };
     
     init();
-  }, [trackerId]);
+  }, [trackerId, initializeGoal, loadData]);
+
+  if (!config) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">❓</div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">トラッカーが見つかりません</h1>
+          <p className="text-gray-600">指定されたトラッカーは存在しません。</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleAddRecord = async (amount: number, note?: string) => {
     setIsLoading(true);

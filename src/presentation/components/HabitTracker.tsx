@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { HydrationRecord } from '@/domain/entities/HydrationRecord';
+import { DailyHydrationSummary } from '@/domain/value-objects/HydrationSummary';
 
 interface HabitStats {
   currentStreak: number;
@@ -22,8 +24,8 @@ interface Badge {
 }
 
 interface HabitTrackerProps {
-  records: any[];
-  dailySummary: any;
+  records: HydrationRecord[];
+  dailySummary: DailyHydrationSummary | null;
   currentGoal: number;
 }
 
@@ -121,112 +123,11 @@ export default function HabitTracker({ records, dailySummary, currentGoal }: Hab
     badges: BADGES
   });
 
-  useEffect(() => {
-    calculateStats();
-  }, [records, dailySummary, currentGoal]);
-
-  const calculateStats = () => {
-    if (!records || records.length === 0) return;
-
-    // Calculate daily achievements
-    const dailyTotals = new Map<string, number>();
-    records.forEach(record => {
-      const date = new Date(record.timestamp).toDateString();
-      dailyTotals.set(date, (dailyTotals.get(date) || 0) + record.amount);
-    });
-
-    const sortedDates = Array.from(dailyTotals.keys()).sort((a, b) => 
-      new Date(b).getTime() - new Date(a).getTime()
-    );
-
-    // Calculate current streak
-    let currentStreak = 0;
-    let longestStreak = 0;
-    let tempStreak = 0;
-
-    const today = new Date().toDateString();
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
-
-    // Check if today or yesterday has records (to maintain streak)
-    const hasRecentRecord = dailyTotals.has(today) || dailyTotals.has(yesterday);
-    
-    if (hasRecentRecord) {
-      for (let i = 0; i < sortedDates.length; i++) {
-        const date = sortedDates[i];
-        const amount = dailyTotals.get(date) || 0;
-        
-        if (amount >= currentGoal) {
-          if (i === 0) currentStreak++;
-          tempStreak++;
-          longestStreak = Math.max(longestStreak, tempStreak);
-        } else {
-          if (i === 0) break; // Current streak ends
-          tempStreak = 0;
-        }
-      }
-    }
-
-    // Calculate weekly and monthly achievement rates
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    let weeklyAchievements = 0;
-    let monthlyAchievements = 0;
-    let weeklyDays = 0;
-    let monthlyDays = 0;
-
-    dailyTotals.forEach((amount, dateStr) => {
-      const date = new Date(dateStr);
-      if (date >= weekAgo) {
-        weeklyDays++;
-        if (amount >= currentGoal) weeklyAchievements++;
-      }
-      if (date >= monthAgo) {
-        monthlyDays++;
-        if (amount >= currentGoal) monthlyAchievements++;
-      }
-    });
-
-    const weeklyGoalAchievement = weeklyDays > 0 ? (weeklyAchievements / weeklyDays) * 100 : 0;
-    const monthlyGoalAchievement = monthlyDays > 0 ? (monthlyAchievements / monthlyDays) * 100 : 0;
-
-    // Calculate and update badges
-    const updatedBadges = calculateBadges(records, dailyTotals, currentGoal, {
-      currentStreak,
-      longestStreak,
-      totalDays: dailyTotals.size,
-      weeklyGoalAchievement,
-      monthlyGoalAchievement
-    });
-
-    setStats({
-      currentStreak,
-      longestStreak,
-      totalDays: dailyTotals.size,
-      weeklyGoalAchievement,
-      monthlyGoalAchievement,
-      badges: updatedBadges
-    });
-
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hydration-habit-stats', JSON.stringify({
-        currentStreak,
-        longestStreak,
-        totalDays: dailyTotals.size,
-        weeklyGoalAchievement,
-        monthlyGoalAchievement,
-        badges: updatedBadges
-      }));
-    }
-  };
-
-  const calculateBadges = (
-    records: any[], 
+  const calculateBadges = useCallback((
+    records: HydrationRecord[], 
     dailyTotals: Map<string, number>, 
     currentGoal: number,
-    stats: any
+    stats: HabitStats
   ): Badge[] => {
     const badges = [...BADGES];
     const today = new Date();
@@ -314,7 +215,110 @@ export default function HabitTracker({ records, dailySummary, currentGoal }: Hab
     });
 
     return badges;
-  };
+  }, [dailySummary]);
+
+  const calculateStats = useCallback(() => {
+    if (!records || records.length === 0) return;
+
+    // Calculate daily achievements
+    const dailyTotals = new Map<string, number>();
+    records.forEach(record => {
+      const date = new Date(record.timestamp).toDateString();
+      dailyTotals.set(date, (dailyTotals.get(date) || 0) + record.amount);
+    });
+
+    const sortedDates = Array.from(dailyTotals.keys()).sort((a, b) => 
+      new Date(b).getTime() - new Date(a).getTime()
+    );
+
+    // Calculate current streak
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 0;
+
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
+
+    // Check if today or yesterday has records (to maintain streak)
+    const hasRecentRecord = dailyTotals.has(today) || dailyTotals.has(yesterday);
+    
+    if (hasRecentRecord) {
+      for (let i = 0; i < sortedDates.length; i++) {
+        const date = sortedDates[i];
+        const amount = dailyTotals.get(date) || 0;
+        
+        if (amount >= currentGoal) {
+          if (i === 0) currentStreak++;
+          tempStreak++;
+          longestStreak = Math.max(longestStreak, tempStreak);
+        } else {
+          if (i === 0) break; // Current streak ends
+          tempStreak = 0;
+        }
+      }
+    }
+
+    // Calculate weekly and monthly achievement rates
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    let weeklyAchievements = 0;
+    let monthlyAchievements = 0;
+    let weeklyDays = 0;
+    let monthlyDays = 0;
+
+    dailyTotals.forEach((amount, dateStr) => {
+      const date = new Date(dateStr);
+      if (date >= weekAgo) {
+        weeklyDays++;
+        if (amount >= currentGoal) weeklyAchievements++;
+      }
+      if (date >= monthAgo) {
+        monthlyDays++;
+        if (amount >= currentGoal) monthlyAchievements++;
+      }
+    });
+
+    const weeklyGoalAchievement = weeklyDays > 0 ? (weeklyAchievements / weeklyDays) * 100 : 0;
+    const monthlyGoalAchievement = monthlyDays > 0 ? (monthlyAchievements / monthlyDays) * 100 : 0;
+
+    // Calculate and update badges
+    const updatedBadges = calculateBadges(records, dailyTotals, currentGoal, {
+      currentStreak,
+      longestStreak,
+      totalDays: dailyTotals.size,
+      weeklyGoalAchievement,
+      monthlyGoalAchievement,
+      badges: BADGES
+    });
+
+    setStats({
+      currentStreak,
+      longestStreak,
+      totalDays: dailyTotals.size,
+      weeklyGoalAchievement,
+      monthlyGoalAchievement,
+      badges: updatedBadges
+    });
+
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hydration-habit-stats', JSON.stringify({
+        currentStreak,
+        longestStreak,
+        totalDays: dailyTotals.size,
+        weeklyGoalAchievement,
+        monthlyGoalAchievement,
+        badges: updatedBadges
+      }));
+    }
+  }, [records, currentGoal, calculateBadges]);
+
+  useEffect(() => {
+    calculateStats();
+  }, [calculateStats]);
+
 
   const getStreakEmoji = (streak: number) => {
     if (streak >= 30) return '🔥';

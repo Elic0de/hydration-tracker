@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface WeatherData {
   temperature: number;
@@ -91,20 +91,54 @@ export default function WeatherIntegration({ currentGoal, onGoalAdjustment }: We
     }
   }, []);
 
+  const checkForGoalAdjustment = useCallback(() => {
+    if (!weatherData || !autoAdjustEnabled) return;
+
+    const { temperature, humidity } = weatherData;
+    let adjustment = 0;
+    let reason = '';
+
+    // Check temperature-based adjustments
+    if (temperature >= WEATHER_ADJUSTMENTS.veryHot.threshold) {
+      adjustment = WEATHER_ADJUSTMENTS.veryHot.adjustment;
+      reason = WEATHER_ADJUSTMENTS.veryHot.reason;
+    } else if (temperature >= WEATHER_ADJUSTMENTS.hot.threshold) {
+      adjustment = WEATHER_ADJUSTMENTS.hot.adjustment;
+      reason = WEATHER_ADJUSTMENTS.hot.reason;
+    } else if (temperature <= WEATHER_ADJUSTMENTS.cold.threshold) {
+      adjustment = WEATHER_ADJUSTMENTS.cold.adjustment;
+      reason = WEATHER_ADJUSTMENTS.cold.reason;
+    }
+
+    // Check humidity-based adjustments
+    if (humidity <= WEATHER_ADJUSTMENTS.dry.threshold) {
+      adjustment += WEATHER_ADJUSTMENTS.dry.adjustment;
+      reason += (reason ? ' / ' : '') + WEATHER_ADJUSTMENTS.dry.reason;
+    } else if (humidity >= WEATHER_ADJUSTMENTS.humid.threshold) {
+      adjustment += WEATHER_ADJUSTMENTS.humid.adjustment;
+      reason += (reason ? ' / ' : '') + WEATHER_ADJUSTMENTS.humid.reason;
+    }
+
+    // Apply adjustment if significant
+    if (Math.abs(adjustment) >= 200) {
+      const newGoal = Math.max(1000, currentGoal + adjustment); // Minimum 1000ml
+      onGoalAdjustment(newGoal, reason);
+    }
+  }, [weatherData, autoAdjustEnabled, currentGoal, onGoalAdjustment]);
+
   useEffect(() => {
     if (autoAdjustEnabled && weatherData) {
       checkForGoalAdjustment();
     }
-  }, [weatherData, autoAdjustEnabled, currentGoal]);
+  }, [autoAdjustEnabled, weatherData, checkForGoalAdjustment]);
 
   const fetchWeather = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Get user location
-      const position = await getCurrentPosition();
-      const { latitude, longitude } = position.coords;
+      // Get user location (currently unused in mock implementation)
+      await getCurrentPosition();
 
       // Use OpenWeatherMap API (you would need to replace with actual API key)
       // For demo purposes, we'll simulate weather data
@@ -157,40 +191,6 @@ export default function WeatherIntegration({ currentGoal, onGoalAdjustment }: We
     });
   };
 
-  const checkForGoalAdjustment = () => {
-    if (!weatherData || !autoAdjustEnabled) return;
-
-    const { temperature, humidity } = weatherData;
-    let adjustment = 0;
-    let reason = '';
-
-    // Check temperature-based adjustments
-    if (temperature >= WEATHER_ADJUSTMENTS.veryHot.threshold) {
-      adjustment = WEATHER_ADJUSTMENTS.veryHot.adjustment;
-      reason = WEATHER_ADJUSTMENTS.veryHot.reason;
-    } else if (temperature >= WEATHER_ADJUSTMENTS.hot.threshold) {
-      adjustment = WEATHER_ADJUSTMENTS.hot.adjustment;
-      reason = WEATHER_ADJUSTMENTS.hot.reason;
-    } else if (temperature <= WEATHER_ADJUSTMENTS.cold.threshold) {
-      adjustment = WEATHER_ADJUSTMENTS.cold.adjustment;
-      reason = WEATHER_ADJUSTMENTS.cold.reason;
-    }
-
-    // Check humidity-based adjustments
-    if (humidity <= WEATHER_ADJUSTMENTS.dry.threshold) {
-      adjustment += WEATHER_ADJUSTMENTS.dry.adjustment;
-      reason += (reason ? ' / ' : '') + WEATHER_ADJUSTMENTS.dry.reason;
-    } else if (humidity >= WEATHER_ADJUSTMENTS.humid.threshold) {
-      adjustment += WEATHER_ADJUSTMENTS.humid.adjustment;
-      reason += (reason ? ' / ' : '') + WEATHER_ADJUSTMENTS.humid.reason;
-    }
-
-    // Apply adjustment if significant
-    if (Math.abs(adjustment) >= 200) {
-      const newGoal = Math.max(1000, currentGoal + adjustment); // Minimum 1000ml
-      onGoalAdjustment(newGoal, reason);
-    }
-  };
 
   const getWeatherIcon = (description: string, temp: number) => {
     if (temp >= 35) return '🔥';

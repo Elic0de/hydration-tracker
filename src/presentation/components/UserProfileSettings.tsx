@@ -302,7 +302,7 @@ export default function UserProfileSettings({ onProfileUpdate }: UserProfileSett
                 <ul className="text-xs text-gray-600 space-y-1">
                   <li>• 基本量: 体重 × 30ml</li>
                   <li>• 活動レベル: × {ACTIVITY_LEVELS.find(a => a.value === profile.activityLevel)?.multiplier}</li>
-                  <li>• 気候調整: {CLIMATE_LEVELS.find(c => c.value === profile.climate)?.adjustment >= 0 ? '+' : ''}{CLIMATE_LEVELS.find(c => c.value === profile.climate)?.adjustment}ml</li>
+                  <li>• 気候調整: {(CLIMATE_LEVELS.find(c => c.value === profile.climate)?.adjustment ?? 0) >= 0 ? '+' : ''}{CLIMATE_LEVELS.find(c => c.value === profile.climate)?.adjustment ?? 0}ml</li>
                   <li>• 年齢調整: {profile.age > 65 ? '-200ml (高齢者)' : profile.age < 18 ? '+200ml (成長期)' : 'なし'}</li>
                 </ul>
               </div>

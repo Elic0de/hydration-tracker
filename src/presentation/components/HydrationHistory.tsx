@@ -26,7 +26,7 @@ export default function HydrationHistory({ records, onEdit, onDelete }: Hydratio
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
     .slice(0, 10);
 
-  const getRecordEmoji = (note: string | undefined, amount: number) => {
+  const getRecordEmoji = (note: string | undefined) => {
     if (note?.includes('ひと口')) return '🥤';
     if (note?.includes('コップ半分')) return '🥛';
     if (note?.includes('コップ一杯')) return '☕';
@@ -101,7 +101,7 @@ export default function HydrationHistory({ records, onEdit, onDelete }: Hydratio
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
                     <div className="text-2xl">
-                      {getRecordEmoji(editNote, editAmount)}
+                      {getRecordEmoji(editNote)}
                     </div>
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center space-x-2">
@@ -174,7 +174,7 @@ export default function HydrationHistory({ records, onEdit, onDelete }: Hydratio
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="text-2xl">
-                      {getRecordEmoji(record.note, record.amount)}
+                      {getRecordEmoji(record.note)}
                     </div>
                     <div>
                       <div className="flex items-center space-x-2">

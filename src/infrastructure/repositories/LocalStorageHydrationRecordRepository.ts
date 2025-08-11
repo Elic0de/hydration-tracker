@@ -2,6 +2,14 @@ import { HydrationRecordRepository } from '@/domain/repositories/HydrationRecord
 import { HydrationRecord, HydrationRecordId } from '@/domain/entities/HydrationRecord';
 import { UserId } from '@/domain/entities/User';
 
+interface HydrationRecordStorageDto {
+  id: { value: string };
+  userId: { value: string };
+  amount: number;
+  timestamp: string;
+  note?: string;
+}
+
 export class LocalStorageHydrationRecordRepository implements HydrationRecordRepository {
   private readonly STORAGE_KEY = 'hydration-tracker-records';
 
@@ -55,7 +63,7 @@ export class LocalStorageHydrationRecordRepository implements HydrationRecordRep
     
     try {
       const parsed = JSON.parse(stored);
-      return parsed.map((item: any) => ({
+      return parsed.map((item: HydrationRecordStorageDto) => ({
         ...item,
         timestamp: new Date(item.timestamp),
       }));

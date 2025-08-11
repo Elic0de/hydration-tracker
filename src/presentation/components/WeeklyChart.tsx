@@ -12,6 +12,7 @@ import {
   Tooltip,
   Legend,
   Filler,
+  TooltipItem,
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { WeeklyStatistics } from '@/application/use-cases/GetWeeklyStatisticsUseCase';
@@ -48,23 +49,35 @@ export default function WeeklyChart({ data }: WeeklyChartProps) {
     return colors;
   };
 
-  const chartData = {
+  const barChartData = {
     labels: data.dailyData.map((_, index) => weekDays[index]),
     datasets: [
       {
         label: '摂取量',
         data: data.dailyData.map(day => day.totalAmount),
-        borderColor: chartType === 'line' ? 'rgb(59, 130, 246)' : undefined,
-        backgroundColor: chartType === 'bar' ? getGradientColors() : 'rgba(59, 130, 246, 0.1)',
-        fill: chartType === 'line',
+        backgroundColor: getGradientColors(),
+        borderWidth: 0,
+        borderRadius: 8,
+      },
+    ],
+  };
+
+  const lineChartData = {
+    labels: data.dailyData.map((_, index) => weekDays[index]),
+    datasets: [
+      {
+        label: '摂取量',
+        data: data.dailyData.map(day => day.totalAmount),
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
         tension: 0.4,
-        pointRadius: chartType === 'line' ? 6 : 0,
+        pointRadius: 6,
         pointHoverRadius: 8,
         pointBackgroundColor: getGradientColors(),
         pointBorderColor: 'white',
         pointBorderWidth: 2,
-        borderWidth: chartType === 'bar' ? 0 : 2,
-        borderRadius: chartType === 'bar' ? 8 : 0,
+        borderWidth: 2,
       },
       ...(showGoal ? [{
         label: '目標',
@@ -106,12 +119,12 @@ export default function WeeklyChart({ data }: WeeklyChartProps) {
         cornerRadius: 8,
         padding: 12,
         callbacks: {
-          label: function(context: any) {
+          label: function(context: TooltipItem<'bar' | 'line'>) {
             const label = context.dataset.label || '';
             const value = context.parsed.y;
             return `${label}: ${value}ml`;
           },
-          afterBody: function(tooltipItems: any[]) {
+          afterBody: function(tooltipItems: TooltipItem<'bar' | 'line'>[]) {
             if (tooltipItems.length > 0) {
               const index = tooltipItems[0].dataIndex;
               const dayData = data.dailyData[index];
@@ -137,7 +150,7 @@ export default function WeeklyChart({ data }: WeeklyChartProps) {
           color: 'rgba(0, 0, 0, 0.1)',
         },
         ticks: {
-          callback: function(value: any) {
+          callback: function(value: string | number) {
             return value + 'ml';
           },
         },
@@ -212,9 +225,9 @@ export default function WeeklyChart({ data }: WeeklyChartProps) {
       {/* グラフ */}
       <div className="h-64 md:h-80 lg:h-96 mb-6">
         {chartType === 'line' ? (
-          <Line data={chartData} options={options} />
+          <Line data={lineChartData} options={options} />
         ) : (
-          <Bar data={chartData} options={options} />
+          <Bar data={barChartData} options={options} />
         )}
       </div>
 

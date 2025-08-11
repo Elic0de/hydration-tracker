@@ -258,7 +258,15 @@ export default function QuickActions({ onQuickRecord, isLoading = false }: Quick
       {editingAction && (
         <ActionEditorModal
           action={editingAction}
-          onSave={editingAction.id === 'new' ? handleAddAction : handleSaveAction}
+          onSave={(action) => {
+            if ('id' in action && action.id !== 'new') {
+              handleSaveAction(action as QuickAction);
+            } else {
+              const { id, ...actionWithoutId } = action as QuickAction;
+              void id; // Acknowledge the destructured id is intentionally not used
+              handleAddAction(actionWithoutId);
+            }
+          }}
           onCancel={() => {
             setEditingAction(null);
           }}

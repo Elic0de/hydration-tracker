@@ -10,12 +10,6 @@ export default function DailySummary({ summary }: DailySummaryProps) {
   const progressPercentage = Math.round(summary.achievementRate * 100);
   const remaining = Math.max(0, summary.goalAmount - summary.totalAmount);
 
-  const getProgressColor = () => {
-    if (progressPercentage >= 100) return 'from-emerald-400 to-emerald-500';
-    if (progressPercentage >= 75) return 'from-blue-400 to-blue-500';
-    if (progressPercentage >= 50) return 'from-amber-400 to-amber-500';
-    return 'from-pink-400 to-pink-500';
-  };
 
   const getWaveEmoji = () => {
     if (progressPercentage >= 100) return '🌊';

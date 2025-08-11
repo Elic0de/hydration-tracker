@@ -131,7 +131,7 @@ export default function HealthcareIntegration({ onDataSync }: HealthcareIntegrat
       saveConnectionStatus(providerId, true);
       
       // Simulate initial data sync
-      await syncHealthData(providerId);
+      await syncHealthData();
       
     } catch (error) {
       console.error('Failed to connect provider:', error);
@@ -150,7 +150,7 @@ export default function HealthcareIntegration({ onDataSync }: HealthcareIntegrat
     saveConnectionStatus(providerId, false);
   };
 
-  const syncHealthData = async (providerId?: string) => {
+  const syncHealthData = async () => {
     setSyncInProgress(true);
     
     try {

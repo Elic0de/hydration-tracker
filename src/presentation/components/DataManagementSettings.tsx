@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 interface DataManagementSettingsProps {
   onDataExport: (format: 'json' | 'csv') => void;
-  onDataImport: (data: any) => void;
+  onDataImport: (data: unknown) => void;
   onDataClear: () => void;
 }
 
@@ -31,7 +31,7 @@ export default function DataManagementSettings({
       try {
         const data = JSON.parse(e.target?.result as string);
         onDataImport(data);
-      } catch (error) {
+      } catch {
         alert('ファイルの読み込みに失敗しました。正しいJSONファイルを選択してください。');
       }
     };
@@ -47,7 +47,7 @@ export default function DataManagementSettings({
     if (typeof window === 'undefined') return '0KB';
     
     let total = 0;
-    for (let key in localStorage) {
+    for (const key in localStorage) {
       if (localStorage.hasOwnProperty(key) && key.startsWith('hydration-')) {
         total += localStorage[key].length + key.length;
       }

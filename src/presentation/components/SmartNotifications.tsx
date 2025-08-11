@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { HydrationRecord } from '@/domain/entities/HydrationRecord';
 
 interface NotificationPattern {
   timeSlot: string; // '08:00-09:00' format
@@ -24,7 +25,7 @@ interface SmartNotificationSettings {
 }
 
 interface SmartNotificationsProps {
-  records: any[];
+  records: HydrationRecord[];
   onSettingsChange: (settings: SmartNotificationSettings) => void;
 }
 
@@ -50,38 +51,11 @@ export default function SmartNotifications({ records, onSettingsChange }: SmartN
     optimalTimes: [] as string[]
   });
 
-  useEffect(() => {
-    loadSettings();
-    analyzePatterns();
-  }, [records]);
-
-  const loadSettings = () => {
-    if (typeof window !== 'undefined') {
-      const savedSettings = localStorage.getItem('hydration-smart-notifications');
-      if (savedSettings) {
-        try {
-          const parsed = JSON.parse(savedSettings);
-          setSettings(parsed);
-        } catch (error) {
-          console.error('Failed to load smart notification settings:', error);
-        }
-      }
-    }
-  };
-
-  const saveSettings = (newSettings: SmartNotificationSettings) => {
-    setSettings(newSettings);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hydration-smart-notifications', JSON.stringify(newSettings));
-    }
-    onSettingsChange(newSettings);
-  };
-
-  const analyzePatterns = () => {
+  const analyzePatterns = useCallback(() => {
     if (!records || records.length === 0) return;
 
     // Group records by hour slots
-    const hourlyPatterns: { [key: string]: { records: any[], amounts: number[] } } = {};
+    const hourlyPatterns: { [key: string]: { records: HydrationRecord[], amounts: number[] } } = {};
     
     records.forEach(record => {
       const date = new Date(record.timestamp);
@@ -129,7 +103,35 @@ export default function SmartNotifications({ records, onSettingsChange }: SmartN
       avgResponseTime: Math.round(Math.random() * 30 + 15), // Simulated
       optimalTimes
     });
+  }, [records]);
+
+  useEffect(() => {
+    loadSettings();
+    analyzePatterns();
+  }, [analyzePatterns]);
+
+  const loadSettings = () => {
+    if (typeof window !== 'undefined') {
+      const savedSettings = localStorage.getItem('hydration-smart-notifications');
+      if (savedSettings) {
+        try {
+          const parsed = JSON.parse(savedSettings);
+          setSettings(parsed);
+        } catch (error) {
+          console.error('Failed to load smart notification settings:', error);
+        }
+      }
+    }
   };
+
+  const saveSettings = (newSettings: SmartNotificationSettings) => {
+    setSettings(newSettings);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hydration-smart-notifications', JSON.stringify(newSettings));
+    }
+    onSettingsChange(newSettings);
+  };
+
 
   const getOptimalNotificationTime = (): string => {
     if (patterns.length === 0) return '09:00';

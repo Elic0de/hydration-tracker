@@ -1,6 +1,15 @@
 import { GenericRecord, GenericRecordId } from '@/domain/entities/GenericRecord';
 import { GenericRecordRepository } from '@/domain/repositories/GenericRecordRepository';
 
+interface GenericRecordStorageDto {
+  id: { value: string };
+  userId: string;
+  trackerId: string;
+  amount: number;
+  note?: string;
+  recordedAt: string;
+}
+
 export class LocalStorageGenericRecordRepository implements GenericRecordRepository {
   private readonly storageKey = 'generic-records';
 
@@ -12,12 +21,12 @@ export class LocalStorageGenericRecordRepository implements GenericRecordReposit
       if (!data) return [];
       
       const parsed = JSON.parse(data);
-      return parsed.map((item: any) => new GenericRecord(
+      return parsed.map((item: GenericRecordStorageDto) => new GenericRecord(
         new GenericRecordId(item.id.value),
         item.userId,
         item.trackerId,
         item.amount,
-        item.note,
+        item.note ?? null,
         new Date(item.recordedAt)
       ));
     } catch (error) {

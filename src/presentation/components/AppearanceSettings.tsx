@@ -284,7 +284,7 @@ export default function AppearanceSettings({ onSettingsChange }: AppearanceSetti
                         checked={settings[option.key as keyof AppearanceSettings] as boolean}
                         onChange={(e) => handleSettingChange(
                           option.key as keyof AppearanceSettings,
-                          e.target.checked as any
+                          e.target.checked
                         )}
                         className="sr-only peer"
                       />

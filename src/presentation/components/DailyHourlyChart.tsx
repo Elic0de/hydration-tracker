@@ -12,6 +12,7 @@ import {
   Tooltip,
   Legend,
   Filler,
+  TooltipItem,
 } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
 import { DailyHourlyStatistics } from '@/application/use-cases/GetDailyHourlyStatisticsUseCase';
@@ -46,33 +47,43 @@ export default function DailyHourlyChart({ data }: DailyHourlyChartProps) {
 
   const averageAmount = data.totalAmount / 24;
 
-  const chartData = {
+  const barChartData = {
     labels: hours,
     datasets: [
       {
         label: '摂取量',
         data: data.hourlyData.map(hour => hour.amount),
-        backgroundColor: chartType === 'bar' ? 
-          data.hourlyData.map((hour, index) => 
-            index === data.peakHour 
-              ? 'rgba(239, 68, 68, 0.8)' 
-              : getTimeOfDayColor(index)
-          ) : 'rgba(59, 130, 246, 0.1)',
-        borderColor: chartType === 'bar' ?
-          data.hourlyData.map((hour, index) => 
-            index === data.peakHour 
-              ? 'rgb(239, 68, 68)' 
-              : getTimeOfDayColor(index).replace('0.8', '1')
-          ) : 'rgb(59, 130, 246)',
+        backgroundColor: data.hourlyData.map((hour, index) => 
+          index === data.peakHour 
+            ? 'rgba(239, 68, 68, 0.8)' 
+            : getTimeOfDayColor(index)
+        ),
+        borderColor: data.hourlyData.map((hour, index) => 
+          index === data.peakHour 
+            ? 'rgb(239, 68, 68)' 
+            : getTimeOfDayColor(index).replace('0.8', '1')
+        ),
         borderWidth: 2,
-        borderRadius: chartType === 'bar' ? 8 : 0,
+        borderRadius: 8,
         borderSkipped: false,
-        fill: chartType === 'line',
-        tension: chartType === 'line' ? 0.4 : 0,
-        pointRadius: chartType === 'line' ? 4 : 0,
+      },
+    ],
+  };
+
+  const lineChartData = {
+    labels: hours,
+    datasets: [
+      {
+        label: '摂取量',
+        data: data.hourlyData.map(hour => hour.amount),
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderColor: 'rgb(59, 130, 246)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
         pointHoverRadius: 6,
-        pointBackgroundColor: chartType === 'line' ? 
-          data.hourlyData.map((_, index) => getTimeOfDayColor(index)) : undefined,
+        pointBackgroundColor: data.hourlyData.map((_, index) => getTimeOfDayColor(index)),
         pointBorderColor: 'white',
         pointBorderWidth: 2,
       },
@@ -117,11 +128,11 @@ export default function DailyHourlyChart({ data }: DailyHourlyChartProps) {
         cornerRadius: 8,
         padding: 12,
         callbacks: {
-          title: function(tooltipItems: any[]) {
+          title: function(tooltipItems: TooltipItem<'bar' | 'line'>[]) {
             const hour = tooltipItems[0].dataIndex;
             return `${hour}:00 - ${hour + 1}:00`;
           },
-          label: function(context: any) {
+          label: function(context: TooltipItem<'bar' | 'line'>) {
             const value = context.parsed.y;
             const hour = context.dataIndex;
             const recordCount = data.hourlyData[hour].recordCount;
@@ -130,7 +141,7 @@ export default function DailyHourlyChart({ data }: DailyHourlyChartProps) {
               `記録回数: ${recordCount}回`
             ];
           },
-          afterBody: function(tooltipItems: any[]) {
+          afterBody: function(tooltipItems: TooltipItem<'bar' | 'line'>[]) {
             if (tooltipItems.length > 0) {
               const hour = tooltipItems[0].dataIndex;
               if (hour === data.peakHour) {
@@ -149,7 +160,7 @@ export default function DailyHourlyChart({ data }: DailyHourlyChartProps) {
           color: 'rgba(0, 0, 0, 0.1)',
         },
         ticks: {
-          callback: function(value: any) {
+          callback: function(value: string | number) {
             return value + 'ml';
           },
         },
@@ -160,7 +171,7 @@ export default function DailyHourlyChart({ data }: DailyHourlyChartProps) {
         },
         ticks: {
           maxRotation: 0,
-          callback: function(value: any, index: number) {
+          callback: function(value: string | number, index: number) {
             // 4時間おきに表示
             return index % 4 === 0 ? `${index}時` : '';
           },
@@ -234,9 +245,9 @@ export default function DailyHourlyChart({ data }: DailyHourlyChartProps) {
       {/* グラフ */}
       <div className="h-64 md:h-80 lg:h-96 mb-6">
         {chartType === 'bar' ? (
-          <Bar data={chartData} options={options} />
+          <Bar data={barChartData} options={options} />
         ) : (
-          <Line data={chartData} options={options} />
+          <Line data={lineChartData} options={options} />
         )}
       </div>
 

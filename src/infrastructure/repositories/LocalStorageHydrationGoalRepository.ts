@@ -2,6 +2,15 @@ import { HydrationGoalRepository } from '@/domain/repositories/HydrationGoalRepo
 import { HydrationGoal, HydrationGoalId } from '@/domain/entities/HydrationGoal';
 import { UserId } from '@/domain/entities/User';
 
+interface HydrationGoalStorageDto {
+  id: { value: string };
+  userId: { value: string };
+  dailyTarget: number;
+  startDate: string;
+  endDate?: string;
+  isActive: boolean;
+}
+
 export class LocalStorageHydrationGoalRepository implements HydrationGoalRepository {
   private readonly STORAGE_KEY = 'hydration-tracker-goals';
 
@@ -43,7 +52,7 @@ export class LocalStorageHydrationGoalRepository implements HydrationGoalReposit
     
     try {
       const parsed = JSON.parse(stored);
-      return parsed.map((item: any) => ({
+      return parsed.map((item: HydrationGoalStorageDto) => ({
         ...item,
         startDate: new Date(item.startDate),
         endDate: item.endDate ? new Date(item.endDate) : undefined,

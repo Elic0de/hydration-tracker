@@ -1,6 +1,14 @@
 import { UserRepository } from '@/domain/repositories/UserRepository';
 import { User, UserId } from '@/domain/entities/User';
 
+interface UserStorageDto {
+  id: { value: string };
+  name: string;
+  dailyGoal: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class LocalStorageUserRepository implements UserRepository {
   private readonly STORAGE_KEY = 'hydration-tracker-users';
 
@@ -38,7 +46,7 @@ export class LocalStorageUserRepository implements UserRepository {
     
     try {
       const parsed = JSON.parse(stored);
-      return parsed.map((item: any) => ({
+      return parsed.map((item: UserStorageDto) => ({
         ...item,
         createdAt: new Date(item.createdAt),
         updatedAt: new Date(item.updatedAt),

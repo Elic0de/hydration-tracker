@@ -71,26 +71,126 @@ export default function ReminderSettingsComponent({
       {/* 詳細設定 */}
       {isExpanded && localSettings.enabled && (
         <div className="mt-6 space-y-4 animate-in slide-in-from-top-2 duration-200">
-          {/* 間隔選択 */}
+          {/* モード選択 */}
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-3">通知間隔</p>
-            <div className="grid grid-cols-3 gap-2">
-              {intervalOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => handleChange({ intervalMinutes: option.value })}
-                  className={`p-3 rounded-xl text-center transition-all duration-200 ${
-                    localSettings.intervalMinutes === option.value
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
-                      : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
-                  }`}
-                >
-                  <div className="text-lg">{option.emoji}</div>
-                  <div className="text-xs font-medium">{option.label}</div>
-                </button>
-              ))}
+            <p className="text-sm font-medium text-gray-700 mb-3">通知モード</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handleChange({ 
+                  mode: 'auto', 
+                  autoSettings: { 
+                    useSmartTiming: true, 
+                    adaptToWeather: true, 
+                    adaptToActivity: true 
+                  }
+                })}
+                className={`p-4 rounded-xl text-center transition-all duration-200 ${
+                  localSettings.mode === 'auto'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md'
+                    : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
+                }`}
+              >
+                <div className="text-2xl mb-2">🤖</div>
+                <div className="font-semibold text-sm">オートモード</div>
+                <div className="text-xs mt-1 opacity-90">AIが最適な時間を推奨</div>
+              </button>
+              <button
+                onClick={() => handleChange({ mode: 'manual' })}
+                className={`p-4 rounded-xl text-center transition-all duration-200 ${
+                  localSettings.mode === 'manual'
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
+                    : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
+                }`}
+              >
+                <div className="text-2xl mb-2">⚙️</div>
+                <div className="font-semibold text-sm">マニュアルモード</div>
+                <div className="text-xs mt-1 opacity-90">固定間隔で通知</div>
+              </button>
             </div>
           </div>
+
+          {/* オートモード設定 */}
+          {localSettings.mode === 'auto' && (
+            <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+              <h4 className="text-sm font-semibold text-emerald-800 mb-3 flex items-center">
+                <span className="mr-2">🧠</span>
+                スマート通知設定
+              </h4>
+              <div className="space-y-3">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={localSettings.autoSettings?.useSmartTiming ?? true}
+                    onChange={(e) => handleChange({
+                      autoSettings: {
+                        ...localSettings.autoSettings,
+                        useSmartTiming: e.target.checked,
+                        adaptToWeather: localSettings.autoSettings?.adaptToWeather ?? true,
+                        adaptToActivity: localSettings.autoSettings?.adaptToActivity ?? true
+                      }
+                    })}
+                    className="mr-3 h-4 w-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-gray-700">AI推奨タイミングを使用</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={localSettings.autoSettings?.adaptToWeather ?? true}
+                    onChange={(e) => handleChange({
+                      autoSettings: {
+                        ...localSettings.autoSettings,
+                        useSmartTiming: localSettings.autoSettings?.useSmartTiming ?? true,
+                        adaptToWeather: e.target.checked,
+                        adaptToActivity: localSettings.autoSettings?.adaptToActivity ?? true
+                      }
+                    })}
+                    className="mr-3 h-4 w-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-gray-700">天気に基づいて調整</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={localSettings.autoSettings?.adaptToActivity ?? true}
+                    onChange={(e) => handleChange({
+                      autoSettings: {
+                        ...localSettings.autoSettings,
+                        useSmartTiming: localSettings.autoSettings?.useSmartTiming ?? true,
+                        adaptToWeather: localSettings.autoSettings?.adaptToWeather ?? true,
+                        adaptToActivity: e.target.checked
+                      }
+                    })}
+                    className="mr-3 h-4 w-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-gray-700">活動レベルに基づいて調整</span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* マニュアルモード設定 */}
+          {localSettings.mode === 'manual' && (
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-3">通知間隔</p>
+              <div className="grid grid-cols-3 gap-2">
+                {intervalOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleChange({ intervalMinutes: option.value })}
+                    className={`p-3 rounded-xl text-center transition-all duration-200 ${
+                      localSettings.intervalMinutes === option.value
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
+                        : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
+                    }`}
+                  >
+                    <div className="text-lg">{option.emoji}</div>
+                    <div className="text-xs font-medium">{option.label}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* 時間設定 */}
           <div className="grid grid-cols-2 gap-4">
