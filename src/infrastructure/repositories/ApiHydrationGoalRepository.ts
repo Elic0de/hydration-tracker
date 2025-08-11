@@ -2,6 +2,15 @@ import { HydrationGoalRepository } from '@/domain/repositories/HydrationGoalRepo
 import { HydrationGoal, HydrationGoalId } from '@/domain/entities/HydrationGoal';
 import { UserId } from '@/domain/entities/User';
 
+interface HydrationGoalDto {
+  id: string;
+  userId: string;
+  dailyTarget: number;
+  startDate: string;
+  endDate?: string;
+  isActive: boolean;
+}
+
 export class ApiHydrationGoalRepository implements HydrationGoalRepository {
   private readonly baseUrl: string;
 
@@ -52,7 +61,7 @@ export class ApiHydrationGoalRepository implements HydrationGoalRepository {
       }
       
       const data = await response.json();
-      return data.map((item: any) => this.mapToEntity(item));
+      return data.map((item: HydrationGoalDto) => this.mapToEntity(item));
     } catch (error) {
       console.error('Error fetching hydration goals by user:', error);
       throw error;
@@ -74,7 +83,7 @@ export class ApiHydrationGoalRepository implements HydrationGoalRepository {
     }
   }
 
-  private mapToEntity(data: any): HydrationGoal {
+  private mapToEntity(data: HydrationGoalDto): HydrationGoal {
     return {
       id: { value: data.id },
       userId: { value: data.userId },
@@ -85,7 +94,7 @@ export class ApiHydrationGoalRepository implements HydrationGoalRepository {
     };
   }
 
-  private mapToDto(goal: HydrationGoal): any {
+  private mapToDto(goal: HydrationGoal): HydrationGoalDto {
     return {
       id: goal.id.value,
       userId: goal.userId.value,
