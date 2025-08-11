@@ -8,6 +8,28 @@ export interface PWAInstallInfo {
   platform: 'ios' | 'android' | 'desktop' | 'unknown';
 }
 
+interface NavigatorWithConnection extends Navigator {
+  connection?: {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+  };
+  mozConnection?: {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+  };
+  webkitConnection?: {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+  };
+}
+
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
 // Service Worker registration
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   if ('serviceWorker' in navigator && typeof window !== 'undefined') {
@@ -108,7 +130,7 @@ export const getPWAInstallInfo = (): PWAInstallInfo => {
   
   // Check if running as PWA
   const isInstalled = window.matchMedia('(display-mode: standalone)').matches ||
-                     (window.navigator as any).standalone ||
+                     (window.navigator as NavigatorWithStandalone).standalone ||
                      document.referrer.includes('android-app://');
   
   // Detect platform
@@ -247,10 +269,16 @@ export const scheduleRecurringNotifications = (
 };
 
 // Background sync for offline data
+interface ServiceWorkerRegistrationWithSync extends ServiceWorkerRegistration {
+  sync: {
+    register(tag: string): Promise<void>;
+  };
+}
+
 export const scheduleBackgroundSync = (tag: string): void => {
   if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
     navigator.serviceWorker.ready.then(registration => {
-      return registration.sync.register(tag);
+      return (registration as ServiceWorkerRegistrationWithSync).sync.register(tag);
     }).then(() => {
       console.log('Background sync registered:', tag);
     }).catch(error => {
@@ -285,9 +313,9 @@ export const getConnectionStatus = (): {
     return { isOnline: true };
   }
   
-  const connection = (navigator as any).connection || 
-                    (navigator as any).mozConnection || 
-                    (navigator as any).webkitConnection;
+  const connection = (navigator as NavigatorWithConnection).connection || 
+                    (navigator as NavigatorWithConnection).mozConnection || 
+                    (navigator as NavigatorWithConnection).webkitConnection;
   
   return {
     isOnline: navigator.onLine,
